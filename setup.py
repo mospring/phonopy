@@ -1,7 +1,14 @@
 from distutils.core import setup, Extension
 import numpy
+import os
 
 include_dirs_numpy = [numpy.get_include()]
+cc = None
+if 'CC' in os.environ:
+    if 'clang' in os.environ['CC']:
+        cc = 'clang'
+    if 'gcc' in os.environ['CC']:
+        cc = 'gcc'
 
 ######################
 # _phonopy extension #
@@ -18,7 +25,12 @@ if __name__ == '__main__':
     extra_link_args_phonopy = []
 else:
     extra_compile_args_phonopy = ['-fopenmp',]
-    extra_link_args_phonopy = ['-lgomp',]
+    if cc == 'gcc':
+        extra_link_args_phonopy = ['-lgomp',]
+    elif cc == 'clang':
+        extra_link_args_phonopy = []
+    else:
+        extra_link_args_phonopy = ['-lgomp',]
 
 extension_phonopy = Extension(
     'phonopy._phonopy',
@@ -36,7 +48,12 @@ if __name__ == '__main__':
     extra_link_args_spglib=[]
 else:
     extra_compile_args_spglib=['-fopenmp',]
-    extra_link_args_spglib=['-lgomp',]
+    if cc == 'gcc':
+        extra_link_args_spglib=['-lgomp',]
+    elif cc == 'clang':
+        extra_link_args_spglib=[]
+    else:
+        extra_link_args_spglib=['-lgomp',]
 
 extension_spglib = Extension(
     'phonopy._spglib',
@@ -45,10 +62,10 @@ extension_spglib = Extension(
     extra_link_args=extra_link_args_spglib,
     sources=['c/_spglib.c',
              'c/spglib/cell.c',
+             'c/spglib/delaunay.c',
              'c/spglib/hall_symbol.c',
              'c/spglib/kgrid.c',
              'c/spglib/kpoint.c',
-             'c/spglib/lattice.c',
              'c/spglib/mathfunc.c',
              'c/spglib/niggli.c',
              'c/spglib/pointgroup.c',
@@ -84,12 +101,36 @@ scripts_phonopy = ['scripts/phonopy',
                    'scripts/pdosplot']
 
 if __name__ == '__main__':
-    setup(name='phonopy',
-          version='1.10.1',
-          description='This is the phonopy module.',
-          author='Atsushi Togo',
-          author_email='atz.togo@gmail.com',
-          url='http://phonopy.sourceforge.net/',
-          packages=packages_phonopy,
-          scripts=scripts_phonopy,
-          ext_modules=ext_modules_phonopy)
+    version = ''
+    with open("phonopy/version.py") as w:
+        for line in w:
+            if "__version__" in line:
+                version = line.split()[2].strip('\"')
+
+    # To deploy to pypi/conda by travis-CI
+    nanoversion = ''
+    if os.path.isfile("__nanoversion__.txt"):
+        with open('__nanoversion__.txt') as nv:
+            try :
+                for line in nv:
+                    nanoversion = int(line.strip())
+                    break
+            except ValueError :
+                pass
+            if nanoversion :
+                nanoversion = '.'+str(nanoversion)
+            else :
+                nanoversion = ''
+
+    if all([x.isdigit() for x in version.split('.')]):
+        setup(name='phonopy',
+              version=(version + nanoversion),
+              description='This is the phonopy module.',
+              author='Atsushi Togo',
+              author_email='atz.togo@gmail.com',
+              url='http://atztogo.github.io/phonopy/',
+              packages=packages_phonopy,
+              scripts=scripts_phonopy,
+              ext_modules=ext_modules_phonopy)
+    else:
+        print("Phonopy version number could not be retrieved.")

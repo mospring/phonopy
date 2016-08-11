@@ -35,8 +35,7 @@
 #ifndef __dynmat_H__
 #define __dynmat_H__
 
-int get_dynamical_matrix_at_q(double *dynamical_matrix_real,
-			      double *dynamical_matrix_image,
+int get_dynamical_matrix_at_q(double *dynamical_matrix,
 			      const int num_patom, 
 			      const int num_satom,
 			      const double *fc,
@@ -46,7 +45,8 @@ int get_dynamical_matrix_at_q(double *dynamical_matrix_real,
 			      const double *mass,
 			      const int *s2p_map, 
 			      const int *p2s_map,
-			      const double *charge_sum);
+			      const double *charge_sum,
+			      const int with_openmp);
 void get_charge_sum(double *charge_sum,
 		    const int num_patom,
 		    const double factor,

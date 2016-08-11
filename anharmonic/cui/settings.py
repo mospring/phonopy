@@ -12,35 +12,47 @@ class Phono3pySettings(Settings):
         self._create_displacements = False
         self._cutoff_fc3_distance = None
         self._cutoff_pair_distance = None
+        self._frequency_scale_factor = None
+        self._gamma_conversion_factor = None
         self._grid_addresses = None
         self._grid_points = None
         self._ion_clamped = False
         self._is_bterta = False
+        self._is_frequency_shift = False
+        self._is_full_pp = False
         self._is_gruneisen = False
         self._is_imag_self_energy = False
         self._is_isotope = False
         self._is_joint_dos = False
+        self._is_kappa_star = True
         self._is_lbte = False
         self._is_linewidth = False
-        self._is_frequency_shift = False
+        self._is_reducible_collision_matrix = False
+        self._is_symmetrize_fc2 = False
+        self._is_symmetrize_fc3_q = False
+        self._is_symmetrize_fc3_r = False
         self._mass_variances = None
         self._max_freepath = None
         self._mesh_divisors = None
-        self._no_kappa_stars = False
         self._read_amplitude = False
         self._read_collision = None
+        self._read_fc2 = False
+        self._read_fc3 = False
         self._read_gamma = False
+        self._read_phonon = False
         self._run_with_g = True
         self._phonon_supercell_matrix = None
         self._pinv_cutoff = 1.0e-8
+        self._pp_conversion_factor = None
         self._scattering_event_class = None # scattering event class 1 or 2
         self._temperatures = None
-        self._average_pp_interaction = False
+        self._use_ave_pp = False
         self._write_amplitude = False
         self._write_collision = False
-        self._write_gamma = False
         self._write_detailed_gamma = False
-        
+        self._write_gamma = False
+        self._write_phonon = False
+
     def set_boundary_mfp(self, boundary_mfp):
         self._boundary_mfp = boundary_mfp
 
@@ -77,6 +89,18 @@ class Phono3pySettings(Settings):
     def get_cutoff_pair_distance(self):
         return self._cutoff_pair_distance
 
+    def set_frequency_scale_factor(self, frequency_scale_factor):
+        self._frequency_scale_factor = frequency_scale_factor
+
+    def get_frequency_scale_factor(self):
+        return self._frequency_scale_factor
+
+    def set_gamma_conversion_factor(self, gamma_conversion_factor):
+        self._gamma_conversion_factor = gamma_conversion_factor
+
+    def get_gamma_conversion_factor(self):
+        return self._gamma_conversion_factor
+
     def set_grid_addresses(self, grid_addresses):
         self._grid_addresses = grid_addresses
 
@@ -100,6 +124,18 @@ class Phono3pySettings(Settings):
 
     def get_is_bterta(self):
         return self._is_bterta
+
+    def set_is_frequency_shift(self, is_frequency_shift):
+        self._is_frequency_shift = is_frequency_shift
+
+    def get_is_frequency_shift(self):
+        return self._is_frequency_shift
+
+    def set_is_full_pp(self, is_full_pp):
+        self._is_full_pp = is_full_pp
+
+    def get_is_full_pp(self):
+        return self._is_full_pp
 
     def set_is_gruneisen(self, is_gruneisen):
         self._is_gruneisen = is_gruneisen
@@ -125,6 +161,12 @@ class Phono3pySettings(Settings):
     def get_is_joint_dos(self):
         return self._is_joint_dos
 
+    def set_is_kappa_star(self, is_kappa_star):
+        self._is_kappa_star = is_kappa_star
+
+    def get_is_kappa_star(self):
+        return self._is_kappa_star
+
     def set_is_lbte(self, is_lbte):
         self._is_lbte = is_lbte
 
@@ -137,11 +179,29 @@ class Phono3pySettings(Settings):
     def get_is_linewidth(self):
         return self._is_linewidth
 
-    def set_is_frequency_shift(self, is_frequency_shift):
-        self._is_frequency_shift = is_frequency_shift
+    def set_is_reducible_collision_matrix(self, is_reducible_collision_matrix):
+        self._is_reducible_collision_matrix = is_reducible_collision_matrix
 
-    def get_is_frequency_shift(self):
-        return self._is_frequency_shift
+    def get_is_reducible_collision_matrix(self):
+        return self._is_reducible_collision_matrix
+
+    def set_is_symmetrize_fc2(self, is_symmetrize_fc2):
+        self._is_symmetrize_fc2 = is_symmetrize_fc2
+
+    def get_is_symmetrize_fc2(self):
+        return self._is_symmetrize_fc2
+
+    def set_is_symmetrize_fc3_q(self, is_symmetrize_fc3_q):
+        self._is_symmetrize_fc3_q = is_symmetrize_fc3_q
+
+    def get_is_symmetrize_fc3_q(self):
+        return self._is_symmetrize_fc3_q
+
+    def set_is_symmetrize_fc3_r(self, is_symmetrize_fc3_r):
+        self._is_symmetrize_fc3_r = is_symmetrize_fc3_r
+
+    def get_is_symmetrize_fc3_r(self):
+        return self._is_symmetrize_fc3_r
 
     def set_mass_variances(self, mass_variances):
         self._mass_variances = mass_variances
@@ -161,12 +221,6 @@ class Phono3pySettings(Settings):
     def get_mesh_divisors(self):
         return self._mesh_divisors
 
-    def set_no_kappa_stars(self, no_kappa_stars):
-        self._no_kappa_stars = no_kappa_stars
-
-    def get_no_kappa_stars(self):
-        return self._no_kappa_stars
-
     def set_phonon_supercell_matrix(self, matrix):
         self._phonon_supercell_matrix = matrix
 
@@ -178,6 +232,12 @@ class Phono3pySettings(Settings):
 
     def get_pinv_cutoff(self):
         return self._pinv_cutoff
+
+    def set_pp_conversion_factor(self, pp_conversion_factor):
+        self._pp_conversion_factor = pp_conversion_factor
+
+    def get_pp_conversion_factor(self):
+        return self._pp_conversion_factor
 
     def set_read_amplitude(self, read_amplitude):
         self._read_amplitude = read_amplitude
@@ -191,11 +251,29 @@ class Phono3pySettings(Settings):
     def get_read_collision(self):
         return self._read_collision
 
+    def set_read_fc2(self, read_fc2):
+        self._read_fc2 = read_fc2
+
+    def get_read_fc2(self):
+        return self._read_fc2
+
+    def set_read_fc3(self, read_fc3):
+        self._read_fc3 = read_fc3
+
+    def get_read_fc3(self):
+        return self._read_fc3
+
     def set_read_gamma(self, read_gamma):
         self._read_gamma = read_gamma
 
     def get_read_gamma(self):
         return self._read_gamma
+
+    def set_read_phonon(self, read_phonon):
+        self._read_phonon = read_phonon
+
+    def get_read_phonon(self):
+        return self._read_phonon
 
     def set_run_with_g(self, run_with_g):
         self._run_with_g = run_with_g
@@ -215,11 +293,11 @@ class Phono3pySettings(Settings):
     def get_temperatures(self):
         return self._temperatures
 
-    def set_average_pp_interaction(self, average_pp_interaction):
-        self._average_pp_interaction = average_pp_interaction
+    def set_use_ave_pp(self, use_ave_pp):
+        self._use_ave_pp = use_ave_pp
 
-    def get_average_pp_interaction(self):
-        return self._average_pp_interaction
+    def get_use_ave_pp(self):
+        return self._use_ave_pp
 
     def set_write_amplitude(self, write_amplitude):
         self._write_amplitude = write_amplitude
@@ -245,6 +323,11 @@ class Phono3pySettings(Settings):
     def get_write_gamma(self):
         return self._write_gamma
 
+    def set_write_phonon(self, write_phonon):
+        self._write_phonon = write_phonon
+
+    def get_write_phonon(self):
+        return self._write_phonon
 
 class Phono3pyConfParser(ConfParser):
     def __init__(self, filename=None, options=None, option_list=None):
@@ -258,28 +341,31 @@ class Phono3pyConfParser(ConfParser):
         for opt in self._option_list:
             if opt.dest == 'phonon_supercell_dimension':
                 if self._options.phonon_supercell_dimension is not None:
-                    self._confs['dim_fc2'] = \
-                        self._options.phonon_supercell_dimension
+                    self._confs['dim_fc2'] = self._options.phonon_supercell_dimension
 
             if opt.dest == 'boundary_mfp':
                 if self._options.boundary_mfp is not None:
-                    self._confs['boundary_mfp'] = \
-                        self._options.boundary_mfp
+                    self._confs['boundary_mfp'] = self._options.boundary_mfp
 
             if opt.dest == 'constant_averaged_pp_interaction':
                 if self._options.constant_averaged_pp_interaction is not None:
-                    self._confs['constant_averaged_pp_interaction'] = \
-                        self._options.constant_averaged_pp_interaction
+                    self._confs['constant_averaged_pp_interaction'] = self._options.constant_averaged_pp_interaction
 
             if opt.dest == 'cutoff_fc3_distance':
                 if self._options.cutoff_fc3_distance is not None:
-                    self._confs['cutoff_fc3_distance'] = \
-                        self._options.cutoff_fc3_distance
+                    self._confs['cutoff_fc3_distance'] = self._options.cutoff_fc3_distance
 
             if opt.dest == 'cutoff_pair_distance':
                 if self._options.cutoff_pair_distance is not None:
-                    self._confs['cutoff_pair_distance'] = \
-                        self._options.cutoff_pair_distance
+                    self._confs['cutoff_pair_distance'] = self._options.cutoff_pair_distance
+
+            if opt.dest == 'frequency_scale_factor':
+                if self._options.frequency_scale_factor is not None:
+                    self._confs['frequency_scale_factor'] = self._options.frequency_scale_factor
+
+            if opt.dest == 'gamma_conversion_factor':
+                if self._options.gamma_conversion_factor is not None:
+                    self._confs['gamma_conversion_factor'] = self._options.gamma_conversion_factor
 
             if opt.dest == 'grid_addresses':
                 if self._options.grid_addresses is not None:
@@ -305,6 +391,14 @@ class Phono3pyConfParser(ConfParser):
                 if self._options.is_displacement:
                     self._confs['create_displacements'] = '.true.'
 
+            if opt.dest == 'is_frequency_shift':
+                if self._options.is_frequency_shift:
+                    self._confs['frequency_shift'] = '.true.'
+
+            if opt.dest == 'is_full_pp':
+                if self._options.is_full_pp:
+                    self._confs['full_pp'] = '.true.'
+
             if opt.dest == 'is_imag_self_energy':
                 if self._options.is_imag_self_energy:
                     self._confs['imag_self_energy'] = '.true.'
@@ -317,6 +411,10 @@ class Phono3pyConfParser(ConfParser):
                 if self._options.is_joint_dos:
                     self._confs['joint_dos'] = '.true.'
 
+            if opt.dest == 'is_kappa_star':
+                if self._options.no_kappa_stars:
+                    self._confs['kappa_star'] = '.false.'
+
             if opt.dest == 'is_lbte':
                 if self._options.is_lbte:
                     self._confs['lbte'] = '.true.'
@@ -325,9 +423,21 @@ class Phono3pyConfParser(ConfParser):
                 if self._options.is_linewidth:
                     self._confs['linewidth'] = '.true.'
 
-            if opt.dest == 'is_frequency_shift':
-                if self._options.is_frequency_shift:
-                    self._confs['frequency_shift'] = '.true.'
+            if opt.dest == 'is_reducible_collision_matrix':
+                if self._options.is_reducible_collision_matrix:
+                    self._confs['reducible_collision_matrix'] = '.true.'
+
+            if opt.dest == 'is_symmetrize_fc2':
+                if self._options.is_symmetrize_fc2:
+                    self._confs['symmetrize_fc2'] = '.true.'
+
+            if opt.dest == 'is_symmetrize_fc3_q':
+                if self._options.is_symmetrize_fc3_q:
+                    self._confs['symmetrize_fc3_q'] = '.true.'
+
+            if opt.dest == 'is_symmetrize_fc3_r':
+                if self._options.is_symmetrize_fc3_r:
+                    self._confs['symmetrize_fc3_r'] = '.true.'
 
             if opt.dest == 'mass_variances':
                 if self._options.mass_variances is not None:
@@ -341,21 +451,33 @@ class Phono3pyConfParser(ConfParser):
                 if self._options.mesh_divisors is not None:
                     self._confs['mesh_divisors'] = self._options.mesh_divisors
 
-            if opt.dest == 'no_kappa_stars':
-                if self._options.no_kappa_stars:
-                    self._confs['no_kappa_stars'] = '.true.'
-
             if opt.dest == 'pinv_cutoff':
                 if self._options.pinv_cutoff is not None:
                     self._confs['pinv_cutoff'] = self._options.pinv_cutoff
+
+            if opt.dest == 'pp_conversion_factor':
+                if self._options.pp_conversion_factor is not None:
+                    self._confs['pp_conversion_factor'] = self._options.pp_conversion_factor
 
             if opt.dest == 'read_amplitude':
                 if self._options.read_amplitude:
                     self._confs['read_amplitude'] = '.true.'
 
+            if opt.dest == 'read_fc2':
+                if self._options.read_fc2:
+                    self._confs['read_fc2'] = '.true.'
+
+            if opt.dest == 'read_fc3':
+                if self._options.read_fc3:
+                    self._confs['read_fc3'] = '.true.'
+
             if opt.dest == 'read_gamma':
                 if self._options.read_gamma:
                     self._confs['read_gamma'] = '.true.'
+
+            if opt.dest == 'read_phonon':
+                if self._options.read_phonon:
+                    self._confs['read_phonon'] = '.true.'
 
             if opt.dest == 'run_with_g':
                 if not self._options.run_with_g:
@@ -367,16 +489,15 @@ class Phono3pyConfParser(ConfParser):
 
             if opt.dest == 'scattering_event_class':
                 if self._options.scattering_event_class is not None:
-                    self._confs['scattering_event_class'] = \
-                        self._options.scattering_event_class
+                    self._confs['scattering_event_class'] = self._options.scattering_event_class
 
             if opt.dest == 'temperatures':
                 if self._options.temperatures is not None:
                     self._confs['temperatures'] = self._options.temperatures
 
-            if opt.dest == 'average_pp_interaction':
-                if self._options.average_pp_interaction:
-                    self._confs['average_pp_interaction'] = '.true.'
+            if opt.dest == 'use_ave_pp':
+                if self._options.use_ave_pp:
+                    self._confs['use_ave_pp'] = '.true.'
 
             if opt.dest == 'write_amplitude':
                 if self._options.write_amplitude:
@@ -393,6 +514,10 @@ class Phono3pyConfParser(ConfParser):
             if opt.dest == 'write_collision':
                 if self._options.write_collision:
                     self._confs['write_collision'] = '.true.'
+
+            if opt.dest == 'write_phonon':
+                if self._options.write_phonon:
+                    self._confs['write_phonon'] = '.true.'
 
     def _parse_conf(self):
         confs = self._confs
@@ -437,6 +562,18 @@ class Phono3pyConfParser(ConfParser):
                 self.set_parameter('cutoff_pair_distance',
                                    float(confs['cutoff_pair_distance']))
 
+            if conf_key == 'frequency_scale_factor':
+                self.set_parameter('frequency_scale_factor',
+                                   float(confs['frequency_scale_factor']))
+
+            if conf_key == 'full_pp':
+                if confs['full_pp'] == '.true.':
+                    self.set_parameter('is_full_pp', True)
+
+            if conf_key == 'gamma_conversion_factor':
+                self.set_parameter('gamma_conversion_factor',
+                                   float(confs['gamma_conversion_factor']))
+
             if conf_key == 'grid_addresses':
                 vals = [int(x) for x in
                         confs['grid_addresses'].replace(',', ' ').split()]
@@ -459,6 +596,10 @@ class Phono3pyConfParser(ConfParser):
             if conf_key == 'bterta':
                 if confs['bterta'] == '.true.':
                     self.set_parameter('is_bterta', True)
+
+            if conf_key == 'frequency_shift':
+                if confs['frequency_shift'] == '.true.':
+                    self.set_parameter('is_frequency_shift', True)
 
             if conf_key == 'gruneisen':
                 if confs['gruneisen'] == '.true.':
@@ -484,9 +625,21 @@ class Phono3pyConfParser(ConfParser):
                 if confs['linewidth'] == '.true.':
                     self.set_parameter('is_linewidth', True)
 
-            if conf_key == 'frequency_shift':
-                if confs['frequency_shift'] == '.true.':
-                    self.set_parameter('is_frequency_shift', True)
+            if conf_key == 'reducible_collision_matrix':
+                if confs['reducible_collision_matrix'] == '.true.':
+                    self.set_parameter('is_reducible_collision_matrix', True)
+
+            if conf_key == 'symmetrize_fc2':
+                if confs['symmetrize_fc2'] == '.true.':
+                    self.set_parameter('is_symmetrize_fc2', True)
+
+            if conf_key == 'symmetrize_fc3_q':
+                if confs['symmetrize_fc3_q'] == '.true.':
+                    self.set_parameter('is_symmetrize_fc3_q', True)
+
+            if conf_key == 'symmetrize_fc3_r':
+                if confs['symmetrize_fc3_r'] == '.true.':
+                    self.set_parameter('is_symmetrize_fc3_r', True)
 
             if conf_key == 'mass_variances':
                 vals = [fracval(x) for x in confs['mass_variances'].split()]
@@ -515,12 +668,16 @@ class Phono3pyConfParser(ConfParser):
                 else:
                     self.setting_error("Mesh divisors are incorrectly set.")
 
-            if conf_key == 'no_kappa_stars':
-                if confs['no_kappa_stars'] == '.true.':
-                    self.set_parameter('no_kappa_stars', True)
+            if conf_key == 'kappa_star':
+                if confs['kappa_star'] == '.false.':
+                    self.set_parameter('is_kappa_star', False)
 
             if conf_key == 'pinv_cutoff':
                 self.set_parameter('pinv_cutoff', float(confs['pinv_cutoff']))
+
+            if conf_key == 'pp_conversion_factor':
+                self.set_parameter('pp_conversion_factor',
+                                   float(confs['pp_conversion_factor']))
 
             if conf_key == 'read_amplitude':
                 if confs['read_amplitude'] == '.true.':
@@ -533,9 +690,21 @@ class Phono3pyConfParser(ConfParser):
                     vals = [int(x) for x in confs['read_collision'].split()]
                     self.set_parameter('read_collision', vals)
 
+            if conf_key == 'read_fc2':
+                if confs['read_fc2'] == '.true.':
+                    self.set_parameter('read_fc2', True)
+
+            if conf_key == 'read_fc3':
+                if confs['read_fc3'] == '.true.':
+                    self.set_parameter('read_fc3', True)
+
             if conf_key == 'read_gamma':
                 if confs['read_gamma'] == '.true.':
                     self.set_parameter('read_gamma', True)
+
+            if conf_key == 'read_phonon':
+                if confs['read_phonon'] == '.true.':
+                    self.set_parameter('read_phonon', True)
 
             if conf_key == 'run_with_g':
                 if confs['run_with_g'] == '.false.':
@@ -552,9 +721,9 @@ class Phono3pyConfParser(ConfParser):
                 else:
                     self.set_parameter('temperatures', vals)
 
-            if conf_key == 'average_pp_interaction':
-                if confs['average_pp_interaction'] == '.true.':
-                    self.set_parameter('average_pp_interaction', True)
+            if conf_key == 'use_ave_pp':
+                if confs['use_ave_pp'] == '.true.':
+                    self.set_parameter('use_ave_pp', True)
 
             if conf_key == 'write_amplitude':
                 if confs['write_amplitude'] == '.true.':
@@ -571,7 +740,10 @@ class Phono3pyConfParser(ConfParser):
             if conf_key == 'write_collision':
                 if confs['write_collision'] == '.true.':
                     self.set_parameter('write_collision', True)
-                    
+
+            if conf_key == 'write_phonon':
+                if confs['write_phonon'] == '.true.':
+                    self.set_parameter('write_phonon', True)
 
     def _set_settings(self):
         ConfParser.set_settings(self)
@@ -583,144 +755,195 @@ class Phono3pyConfParser(ConfParser):
                 self._settings.set_create_displacements('displacements')
     
         # Supercell dimension for fc2
-        if params.has_key('dim_fc2'):
+        if 'dim_fc2' in params:
             self._settings.set_phonon_supercell_matrix(params['dim_fc2'])
 
         # Boundary mean free path for thermal conductivity calculation
-        if params.has_key('boundary_mfp'):
+        if 'boundary_mfp' in params:
             self._settings.set_boundary_mfp(params['boundary_mfp'])
 
         # Peierls type approximation for squared ph-ph interaction strength
-        if params.has_key('constant_averaged_pp_interaction'):
+        if 'constant_averaged_pp_interaction' in params:
             self._settings.set_constant_averaged_pp_interaction(
                 params['constant_averaged_pp_interaction'])
 
         # Cutoff distance of third-order force constants. Elements where any 
         # pair of atoms has larger distance than cut-off distance are set zero.
-        if params.has_key('cutoff_fc3_distance'):
+        if 'cutoff_fc3_distance' in params:
             self._settings.set_cutoff_fc3_distance(params['cutoff_fc3_distance'])
 
         # Cutoff distance between pairs of displaced atoms used for supercell
         # creation with displacements and making third-order force constants
-        if params.has_key('cutoff_pair_distance'):
+        if 'cutoff_pair_distance' in params:
             self._settings.set_cutoff_pair_distance(
                 params['cutoff_pair_distance'])
 
+        # This scale factor is multiplied to frequencies only, i.e., changes 
+        # frequencies but assumed not to change the physical unit
+        if 'frequency_scale_factor' in params:
+            self._settings.set_frequency_scale_factor(
+                params['frequency_scale_factor'])
+
+        # Gamma unit conversion factor
+        if 'gamma_conversion_factor' in params:
+            self._settings.set_gamma_conversion_factor(
+                params['gamma_conversion_factor'])
+
         # Grid addresses (sets of three integer values)
-        if params.has_key('grid_addresses'):
+        if 'grid_addresses' in params:
             self._settings.set_grid_addresses(params['grid_addresses'])
 
         # Grid points
-        if params.has_key('grid_points'):
+        if 'grid_points' in params:
             self._settings.set_grid_points(params['grid_points'])
 
         # Atoms are clamped under applied strain in Gruneisen parameter calculation
-        if params.has_key('ion_clamped'):
+        if 'ion_clamped' in params:
             self._settings.set_ion_clamped(params['ion_clamped'])
 
         # Calculate thermal conductivity in BTE-RTA
-        if params.has_key('is_bterta'):
+        if 'is_bterta' in params:
             self._settings.set_is_bterta(params['is_bterta'])
 
+        # Calculate frequency_shifts
+        if 'is_frequency_shift' in params:
+            self._settings.set_is_frequency_shift(params['is_frequency_shift'])
+
+        # Calculate full ph-ph interaction strength for RTA conductivity
+        if 'is_full_pp' in params:
+            self._settings.set_is_full_pp(params['is_full_pp'])
+
         # Calculate phonon-Gruneisen parameters
-        if params.has_key('is_gruneisen'):
+        if 'is_gruneisen' in params:
             self._settings.set_is_gruneisen(params['is_gruneisen'])
 
         # Calculate imaginary part of self energy
-        if params.has_key('is_imag_self_energy'):
+        if 'is_imag_self_energy' in params:
             self._settings.set_is_imag_self_energy(params['is_imag_self_energy'])
 
         # Calculate lifetime due to isotope scattering
-        if params.has_key('is_isotope'):
+        if 'is_isotope' in params:
             self._settings.set_is_isotope(params['is_isotope'])
 
         # Calculate joint-DOS
-        if params.has_key('is_joint_dos'):
+        if 'is_joint_dos' in params:
             self._settings.set_is_joint_dos(params['is_joint_dos'])
 
         # Calculate thermal conductivity in LBTE with Chaput's method
-        if params.has_key('is_lbte'):
+        if 'is_lbte' in params:
             self._settings.set_is_lbte(params['is_lbte'])
 
         # Calculate linewidths
-        if params.has_key('is_linewidth'):
+        if 'is_linewidth' in params:
             self._settings.set_is_linewidth(params['is_linewidth'])
 
-        # Calculate frequency_shifts
-        if params.has_key('is_frequency_shift'):
-            self._settings.set_is_frequency_shift(params['is_frequency_shift'])
+        # Solve reducible collision matrix but not reduced matrix
+        if 'is_reducible_collision_matrix' in params:
+            self._settings.set_is_reducible_collision_matrix(
+                params['is_reducible_collision_matrix'])
+
+        # Symmetrize fc2 by index exchange
+        if 'is_symmetrize_fc2' in params:
+            self._settings.set_is_symmetrize_fc2(params['is_symmetrize_fc2'])
+
+        # Symmetrize phonon fc3 by index exchange
+        if 'is_symmetrize_fc3_q' in params:
+            self._settings.set_is_symmetrize_fc3_q(params['is_symmetrize_fc3_q'])
+
+        # Symmetrize fc3 by index exchange
+        if 'is_symmetrize_fc3_r' in params:
+            self._settings.set_is_symmetrize_fc3_r(params['is_symmetrize_fc3_r'])
 
         # Mass variance parameters
-        if params.has_key('mass_variances'):
+        if 'mass_variances' in params:
             self._settings.set_mass_variances(params['mass_variances'])
 
         # Maximum mean free path
-        if params.has_key('max_freepath'):
+        if 'max_freepath' in params:
             self._settings.set_max_freepath(params['max_freepath'])
 
         # Divisors for mesh numbers
-        if params.has_key('mesh_divisors'):
+        if 'mesh_divisors' in params:
             self._settings.set_mesh_divisors(params['mesh_divisors'][:3])
             if len(params['mesh_divisors']) > 3:
                 self._settings.set_coarse_mesh_shifts(
                     params['mesh_divisors'][3:])
 
         # Cutoff frequency for pseudo inversion of collision matrix
-        if params.has_key('pinv_cutoff'):
+        if 'pinv_cutoff' in params:
             self._settings.set_pinv_cutoff(params['pinv_cutoff'])
 
+        # Ph-ph interaction unit conversion factor
+        if 'pp_conversion_factor' in params:
+            self._settings.set_pp_conversion_factor(params['pp_conversion_factor'])
+
         # Read phonon-phonon interaction amplitudes from hdf5
-        if params.has_key('read_amplitude'):
+        if 'read_amplitude' in params:
             self._settings.set_read_amplitude(params['read_amplitude'])
 
         # Read collision matrix and gammas from hdf5
-        if params.has_key('read_collision'):
+        if 'read_collision' in params:
             self._settings.set_read_collision(params['read_collision'])
 
+        # Read fc2 from hdf5
+        if 'read_fc2' in params:
+            self._settings.set_read_fc2(params['read_fc2'])
+            
+        # Read fc3 from hdf5
+        if 'read_fc3' in params:
+            self._settings.set_read_fc3(params['read_fc3'])
+            
         # Read gammas from hdf5
-        if params.has_key('read_gamma'):
+        if 'read_gamma' in params:
             self._settings.set_read_gamma(params['read_gamma'])
             
+        # Read phonons from hdf5
+        if 'read_phonon' in params:
+            self._settings.set_read_phonon(params['read_phonon'])
+
         # Calculate imag-part self energy with integration weights from gaussian
         # smearing function
-        if params.has_key('run_with_g'):
+        if 'run_with_g' in params:
             self._settings.set_run_with_g(params['run_with_g'])
             
         # Sum partial kappa at q-stars
-        if params.has_key('no_kappa_stars'):
-            self._settings.set_no_kappa_stars(params['no_kappa_stars'])
+        if 'is_kappa_star' in params:
+            self._settings.set_is_kappa_star(params['is_kappa_star'])
 
         # Scattering event class 1 or 2
-        if params.has_key('scattering_event_class'):
+        if 'scattering_event_class' in params:
             self._settings.set_scattering_event_class(
                 params['scattering_event_class'])
 
         # Temperatures
-        if params.has_key('temperatures'):
+        if 'temperatures' in params:
             self._settings.set_temperatures(params['temperatures'])
 
         # Use averaged ph-ph interaction
-        if params.has_key('average_pp_interaction'):
-            self._settings.set_average_pp_interaction(
-                params['average_pp_interaction'])
+        if 'use_ave_pp' in params:
+            self._settings.set_use_ave_pp(params['use_ave_pp'])
 
         # Write phonon-phonon interaction amplitudes to hdf5
-        if params.has_key('write_amplitude'):
+        if 'write_amplitude' in params:
             self._settings.set_write_amplitude(params['write_amplitude'])
 
         # Write detailed imag-part of self energy to hdf5
-        if params.has_key('write_detailed_gamma'):
+        if 'write_detailed_gamma' in params:
             self._settings.set_write_detailed_gamma(
                 params['write_detailed_gamma'])
 
         # Write imag-part of self energy to hdf5
-        if params.has_key('write_gamma'):
+        if 'write_gamma' in params:
             self._settings.set_write_gamma(params['write_gamma'])
 
         # Write collision matrix and gammas to hdf5
-        if params.has_key('write_collision'):
+        if 'write_collision' in params:
             self._settings.set_write_collision(params['write_collision'])
             
+        # Write all phonons on grid points to hdf5
+        if 'write_phonon' in params:
+            self._settings.set_write_phonon(params['write_phonon'])
+
 
         
 

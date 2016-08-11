@@ -1,0 +1,8 @@
+'force-fit' requires to merge the master (develop) and phono4py branches.
+'phono4py' requires to merge the master (develop) branch.
+
+Therefore the procedure to make it work is,
+
+1. In the phono4py branch, merge the develop branch and make it work to catch up the latest changes.
+2. In the force-fit branch, merge the phono4py branch and make it work to catch up the latest changes.
+3. Run setup.py, setup4.py, and setup_ff.py.

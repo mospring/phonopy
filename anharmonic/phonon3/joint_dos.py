@@ -27,7 +27,7 @@ class JointDos:
                  temperatures=None,
                  frequency_factor_to_THz=VaspToTHz,
                  frequency_scale_factor=1.0,
-                 is_nosym=False,
+                 is_mesh_symmetry=True,
                  symprec=1e-5,
                  filename=None,
                  log_level=False,
@@ -53,7 +53,7 @@ class JointDos:
         self._temperatures = temperatures
         self._frequency_factor_to_THz = frequency_factor_to_THz
         self._frequency_scale_factor = frequency_scale_factor
-        self._is_nosym = is_nosym
+        self._is_mesh_symmetry = is_mesh_symmetry
         self._symprec = symprec
         self._filename = filename
         self._log_level = log_level
@@ -113,12 +113,13 @@ class JointDos:
         if self._phonon_done is None:
             self._phonon_done = np.zeros(num_grid, dtype='byte')
             self._frequencies = np.zeros((num_grid, num_band), dtype='double')
+            itemsize = self._frequencies.itemsize
             self._eigenvectors = np.zeros((num_grid, num_band, num_band),
-                                          dtype='complex128')
+                                          dtype=("c%d" % (itemsize * 2)))
             
         self._joint_dos = None
         self._frequency_points = None
-        self.set_phonon(np.array([grid_point], dtype='intc'))
+        self.set_phonons(np.array([grid_point], dtype='intc'))
 
     def get_triplets_at_q(self):
         return self._triplets_at_q, self._weights_at_q
@@ -142,7 +143,7 @@ class JointDos:
             self._run_c_with_g()
                 
     def _run_c_with_g(self):
-        self.set_phonon(self._triplets_at_q.ravel())
+        self.set_phonons(self._triplets_at_q.ravel())
         if self._sigma is None:
             f_max = np.max(self._frequencies) * 2
         else:
@@ -166,7 +167,7 @@ class JointDos:
                                             occupation(freqs, t), 0))
         
         for i, freq_point in enumerate(self._frequency_points):
-            g = get_triplets_integration_weights(
+            g, _ = get_triplets_integration_weights(
                 self,
                 np.array([freq_point], dtype='double'),
                 self._sigma,
@@ -199,7 +200,7 @@ class JointDos:
             self._triplets_at_q,
             self._grid_address,
             self._bz_map)
-        self.set_phonon(self._vertices.ravel())
+        self.set_phonons(self._vertices.ravel())
         f_max = np.max(self._frequencies) * 2
         f_max *= 1.005
         f_min = 0
@@ -238,7 +239,7 @@ class JointDos:
             symprec=self._symprec)
         
     def _set_triplets(self):
-        if self._is_nosym:
+        if not self._is_mesh_symmetry:
             if self._log_level:
                 print("Triplets at q without considering symmetry")
                 sys.stdout.flush()
@@ -265,7 +266,7 @@ class JointDos:
                  self._symmetry.get_pointgroup_operations(),
                  self._reciprocal_lattice)
 
-    def set_phonon(self, grid_points):
+    def set_phonons(self, grid_points):
         set_phonon_c(self._dm,
                      self._frequencies,
                      self._eigenvectors,

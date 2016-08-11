@@ -2,7 +2,9 @@ import numpy as np
 from phonopy.phonon.group_velocity import get_group_velocity
 from phonopy.harmonic.force_constants import similarity_transformation
 from phonopy.units import EV, THz, Angstrom
-from anharmonic.phonon3.triplets import get_grid_address, reduce_grid_points, get_ir_grid_points, from_coarse_to_dense_grid_points
+from anharmonic.phonon3.triplets import (get_grid_address, reduce_grid_points,
+                                         get_ir_grid_points,
+                                         from_coarse_to_dense_grid_points)
 from anharmonic.other.isotope import Isotope
 
 unit_to_WmK = ((THz * Angstrom) ** 2 / (Angstrom ** 3) * EV / THz /
@@ -14,21 +16,24 @@ class Conductivity:
                  symmetry,
                  grid_points=None,
                  temperatures=None,
-                 sigmas=[],
+                 sigmas=None,
                  is_isotope=False,
                  mass_variances=None,
                  mesh_divisors=None,
                  coarse_mesh_shifts=None,
                  boundary_mfp=None, # in micrometre
-                 no_kappa_stars=False,
+                 is_kappa_star=True,
                  gv_delta_q=None, # finite difference for group veolocity
                  log_level=0):
+        if sigmas is None:
+            self._sigmas = []
+        else:
+            self._sigmas = sigmas
         self._pp = interaction
         self._collision = None # has to be set derived class
-        
+
         self._temperatures = temperatures
-        self._sigmas = sigmas
-        self._no_kappa_stars = no_kappa_stars
+        self._is_kappa_star = is_kappa_star
         self._gv_delta_q = gv_delta_q
         self._log_level = log_level
         self._primitive = self._pp.get_primitive()
@@ -39,7 +44,7 @@ class Conductivity:
 
         self._symmetry = symmetry
 
-        if self._no_kappa_stars:
+        if not self._is_kappa_star:
             self._point_operations = np.array([np.eye(3, dtype='intc')],
                                               dtype='intc')
         else:
@@ -86,8 +91,8 @@ class Conductivity:
 
     def __iter__(self):
         return self
-            
-    def next(self):
+
+    def __next__(self):
         if self._grid_point_count == len(self._grid_points):
             if self._log_level:
                 print("=================== End of collection of collisions "
@@ -97,6 +102,9 @@ class Conductivity:
             self._run_at_grid_point()
             self._grid_point_count += 1
             return self._grid_point_count - 1
+
+    def next(self):
+        return self.__next__()
 
     def get_mesh_divisors(self):
         return self._mesh_divisors
@@ -109,16 +117,16 @@ class Conductivity:
 
     def get_frequencies(self):
         return self._frequencies[self._grid_points]
-        
+
     def get_qpoints(self):
         return self._qpoints
-            
+
     def get_grid_points(self):
         return self._grid_points
 
     def get_grid_weights(self):
         return self._grid_weights
-            
+
     def get_temperatures(self):
         return self._temperatures
 
@@ -129,17 +137,17 @@ class Conductivity:
     def set_gamma(self, gamma):
         self._gamma = gamma
         self._read_gamma = True
-        
+
     def set_gamma_isotope(self, gamma_iso):
         self._gamma_iso = gamma_iso
         self._read_gamma_iso = True
 
     def get_gamma(self):
         return self._gamma
-        
+
     def get_gamma_isotope(self):
         return self._gamma_iso
-        
+
     def get_kappa(self):
         return self._kappa
 
@@ -171,7 +179,7 @@ class Conductivity:
                 coarse_mesh_shifts=self._coarse_mesh_shifts)
             (self._ir_grid_points,
              self._ir_grid_weights) = self._get_ir_grid_points()
-        elif self._no_kappa_stars: # All grid points
+        elif not self._is_kappa_star: # All grid points
             coarse_grid_address = get_grid_address(self._coarse_mesh)
             coarse_grid_points = np.arange(np.prod(self._coarse_mesh),
                                            dtype='intc')
@@ -194,7 +202,7 @@ class Conductivity:
                                  dtype='double', order='C')
 
         self._grid_point_count = 0
-        self._pp.set_phonon(self._grid_points)
+        self._pp.set_phonons(self._grid_points)
         self._frequencies = self._pp.get_phonons()[0]
 
     def _set_gamma_isotope_at_sigmas(self, i):
@@ -230,7 +238,7 @@ class Conductivity:
                 else:
                     self._mesh_divisors.append(1)
                     print(("Mesh number %d for the " +
-                           ["first", "second", "third"][i] + 
+                           ["first", "second", "third"][i] +
                            " axis is not dividable by divisor %d.") % (m, n))
             self._mesh_divisors = np.array(self._mesh_divisors, dtype='intc')
             if coarse_mesh_shifts is None:
@@ -241,7 +249,7 @@ class Conductivity:
                 if (self._coarse_mesh_shifts[i] and
                     (self._mesh_divisors[i] % 2 != 0)):
                     print("Coarse grid along " +
-                          ["first", "second", "third"][i] + 
+                          ["first", "second", "third"][i] +
                           " axis can not be shifted. Set False.")
                     self._coarse_mesh_shifts[i] = False
 
@@ -258,10 +266,10 @@ class Conductivity:
             mesh_shifts = self._coarse_mesh_shifts
         (coarse_grid_points,
          coarse_grid_weights,
-         coarse_grid_address) = get_ir_grid_points(
-            self._coarse_mesh,
-            self._symmetry.get_pointgroup_operations(),
-            mesh_shifts=mesh_shifts)
+         coarse_grid_address, _) = get_ir_grid_points(
+             self._coarse_mesh,
+             self._symmetry.get_pointgroup_operations(),
+             mesh_shifts=mesh_shifts)
         grid_points = from_coarse_to_dense_grid_points(
             self._mesh,
             self._mesh_divisors,
@@ -270,11 +278,10 @@ class Conductivity:
             coarse_mesh_shifts=self._coarse_mesh_shifts)
         grid_weights = coarse_grid_weights
 
-        assert grid_weights.sum() == np.prod(self._mesh //
-                                             self._mesh_divisors)
+        assert grid_weights.sum() == np.prod(self._mesh // self._mesh_divisors)
 
         return grid_points, grid_weights
-            
+
     def _set_isotope(self, mass_variances):
         if mass_variances is True:
             mv = None
@@ -289,7 +296,7 @@ class Conductivity:
             cutoff_frequency=self._cutoff_frequency,
             lapack_zheev_uplo=self._pp.get_lapack_zheev_uplo())
         self._mass_variances = self._isotope.get_mass_variances()
-        
+
     def _set_gv(self, i):
         # Group velocity [num_freqs, 3]
         gv = self._get_gv(self._qpoints[i])
@@ -322,9 +329,9 @@ class Conductivity:
         #         if mean_free_path > self._boundary_mfp:
         #             main_diagonal[l] = (
         #                 gv_norm / (4 * np.pi * self._boundary_mfp))
-                    
+
         return main_diagonal
-                        
+
     def _get_boundary_scattering(self, i):
         num_band = self._primitive.get_number_of_atoms() * 3
         g_boundary = np.zeros(num_band, dtype='double')
@@ -332,7 +339,7 @@ class Conductivity:
             g_boundary[l] = (np.linalg.norm(self._gv[i, l]) * Angstrom * 1e6 /
                              (4 * np.pi * self._boundary_mfp))
         return g_boundary
-        
+
     def _show_log_header(self, i):
         if self._log_level:
             gp = self._grid_points[i]
@@ -351,4 +358,3 @@ class Conductivity:
                 print(("Mass variance parameters: " +
                        "%5.2e " * len(self._mass_variances)) %
                       tuple(self._mass_variances))
-                        

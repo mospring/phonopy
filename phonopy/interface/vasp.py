@@ -38,24 +38,25 @@ try:
 except ImportError:
     from io import StringIO
 import numpy as np
-from phonopy.structure.atoms import Atoms, symbol_map, atom_data
+from phonopy.structure.atoms import PhonopyAtoms as Atoms
+from phonopy.structure.atoms import symbol_map, atom_data
 from phonopy.structure.cells import get_primitive, get_supercell
 from phonopy.structure.symmetry import Symmetry
 from phonopy.harmonic.force_constants import similarity_transformation
-from phonopy.file_IO import write_FORCE_SETS, write_force_constants_to_hdf5, write_FORCE_CONSTANTS
+from phonopy.file_IO import (write_FORCE_SETS, write_force_constants_to_hdf5,
+                             write_FORCE_CONSTANTS)
 
-def parse_set_of_forces(displacements,
+def parse_set_of_forces(num_atoms,
                         forces_filenames,
                         is_zero_point=False,
                         verbose=True):
-
     if verbose:
         sys.stdout.write("counter (file index): ")
-        
-    num_atom = displacements['natom']
+
     count = 0
     is_parsed = True
-        
+    force_sets = []
+
     if is_zero_point:
         force_files = forces_filenames[1:]
         if _is_version528(forces_filenames[0]):
@@ -68,34 +69,37 @@ def parse_set_of_forces(displacements,
         if verbose:
             sys.stdout.write("%d " % (count + 1))
         count += 1
-            
-        if not _check_forces(zero_forces, num_atom, forces_filenames[0]):
+
+        if not _check_forces(zero_forces, num_atoms, forces_filenames[0]):
             is_parsed = False
     else:
         force_files = forces_filenames
 
-    for i, disp in enumerate(displacements['first_atoms']):
-        if _is_version528(force_files[i]):
-            disp['forces'] = _get_forces_vasprun_xml(_iterparse(
-                VasprunWrapper(force_files[i]), tag='varray'))
+    for filename in force_files:
+        if _is_version528(filename):
+            force_sets.append(_get_forces_vasprun_xml(_iterparse(
+                VasprunWrapper(filename), tag='varray')))
         else:
-            disp['forces'] = _get_forces_vasprun_xml(
-                _iterparse(force_files[i], tag='varray'))
+            force_sets.append(_get_forces_vasprun_xml(
+                _iterparse(filename, tag='varray')))
 
         if is_zero_point:
-            disp['forces'] -= zero_forces
+            force_sets[-1] -= zero_forces
 
         if verbose:
             sys.stdout.write("%d " % (count + 1))
         count += 1
-        
-        if not _check_forces(disp['forces'], num_atom, force_files[i]):
+
+        if not _check_forces(force_sets[-1], num_atoms, filename):
             is_parsed = False
 
     if verbose:
         print('')
-        
-    return is_parsed
+
+    if is_parsed:
+        return force_sets
+    else:
+        return []
 
 def _check_forces(forces, num_atom, filename):
     if len(forces) != num_atom:
@@ -120,7 +124,7 @@ def create_FORCE_CONSTANTS(filename, options, log_level):
             print('')
             print("You need to install python-h5py.")
             return 1
-    
+
         write_force_constants_to_hdf5(force_constants)
         if log_level > 0:
             print("force_constants.hdf5 has been created from vasprun.xml.")
@@ -130,19 +134,19 @@ def create_FORCE_CONSTANTS(filename, options, log_level):
             print("FORCE_CONSTANTS has been created from vasprun.xml.")
 
     if log_level > 0:
-        print("Atom types:", atom_types)
+        print("Atom types: %s" % (" ".join(atom_types)))
     return 0
-        
+
 #
 # read VASP POSCAR
 #
 def read_vasp(filename, symbols=None):
-    lines = open(filename).readlines()
+    with open(filename) as infile :
+        lines = infile.readlines()
     return _get_atoms_from_poscar(lines, symbols)
 
 def read_vasp_from_strings(strings, symbols=None):
-    return _get_atoms_from_poscar(
-        StringIO.StringIO(strings).readlines(), symbols)
+    return _get_atoms_from_poscar(StringIO(strings).readlines(), symbols)
 
 def _get_atoms_from_poscar(lines, symbols):
     line1 = [x for x in lines[0].split()]
@@ -163,7 +167,7 @@ def _get_atoms_from_poscar(lines, symbols):
         symbols = [x for x in lines[5].split()]
         num_atoms = np.array([int(x) for x in lines[6].split()])
         line_at = 7
-    
+
     expaned_symbols = _expand_symbols(num_atoms, symbols)
 
     if lines[line_at][0].lower() == 's':
@@ -188,9 +192,9 @@ def _get_atoms_from_poscar(lines, symbols):
         atoms = Atoms(symbols=expaned_symbols,
                       cell=cell,
                       positions=positions)
-        
+
     return atoms
-                   
+
 def _is_exist_symbols(symbols):
     for s in symbols:
         if not (s in symbol_map):
@@ -210,7 +214,7 @@ def _expand_symbols(num_atoms, symbols=None):
                 if not s in symbol_map:
                     is_symbols = False
                     break
-    
+
     if is_symbols:
         for s, num in zip(symbols, num_atoms):
             expanded_symbols += [s] * num
@@ -225,19 +229,26 @@ def _expand_symbols(num_atoms, symbols=None):
 #
 def write_vasp(filename, atoms, direct=True):
     lines = _get_vasp_structure(atoms, direct=direct)
-    f = open(filename, 'w')
-    f.write(lines)
+    with open(filename, 'w') as w:
+        w.write("\n".join(lines))
 
 def write_supercells_with_displacements(supercell,
-                                        cells_with_displacements):
+                                        cells_with_displacements,
+                                        pre_filename="POSCAR",
+                                        width=3):
     write_vasp("SPOSCAR", supercell, direct=True)
     for i, cell in enumerate(cells_with_displacements):
-        write_vasp('POSCAR-%03d' % (i + 1), cell, direct=True)
+        if cell is not None:
+            write_vasp("{pre_filename}-{0:0{width}}".format(i + 1,
+                                                   pre_filename=pre_filename,
+                                                   width=width),
+                       cell,
+                       direct=True)
 
     _write_magnetic_moments(supercell)
 
 def _write_magnetic_moments(cell):
-    magmoms = cell.get_magnetic_moments() 
+    magmoms = cell.get_magnetic_moments()
     if magmoms is not  None:
         w = open("MAGMOM", 'w')
         (num_atoms,
@@ -250,17 +261,20 @@ def _write_magnetic_moments(cell):
             w.write("%f " % magmoms[i])
         w.write("\n")
         w.close()
-                
+
 def get_scaled_positions_lines(scaled_positions):
-    lines = ""
+    return "\n".join(_get_scaled_positions_lines(scaled_positions))
+
+def _get_scaled_positions_lines(scaled_positions):
+    lines = []
     for i, vec in enumerate(scaled_positions):
+        line_str = ""
         for x in (vec - np.rint(vec)):
             if float('%20.16f' % x) < 0.0:
-                lines += "%20.16f" % (x + 1.0)
+                line_str += "%20.16f" % (x + 1.0)
             else:
-                lines += "%20.16f" % (x)
-        if i < len(scaled_positions) - 1:
-            lines += "\n"
+                line_str += "%20.16f" % (x)
+        lines.append(line_str)
 
     return lines
 
@@ -283,20 +297,21 @@ def _get_vasp_structure(atoms, direct=True):
      scaled_positions,
      sort_list) = sort_positions_by_symbols(atoms.get_chemical_symbols(),
                                             atoms.get_scaled_positions())
-    lines = ""     
-    for s in symbols:
-        lines += "%s " % s
-    lines += "\n"
-    lines += "   1.0\n"
+    lines = []
+    lines.append(" ".join(["%s" % s for s in symbols]))
+    lines.append("   1.0")
     for a in atoms.get_cell():
-        lines += "  %21.16f %21.16f %21.16f\n" % tuple(a)
-    lines += ("%4d " * len(num_atoms)) % tuple(num_atoms)
-    lines += "\n"
-    lines += "Direct\n"
-    lines += get_scaled_positions_lines(scaled_positions)
+        lines.append("  %21.16f %21.16f %21.16f" % tuple(a))
+    lines.append(" ".join(["%4d" % n for n in num_atoms]))
+    lines.append("Direct")
+    lines += _get_scaled_positions_lines(scaled_positions)
+
+    # VASP compiled on some system, ending by \n is necessary to read POSCAR
+    # properly.
+    lines.append('')
 
     return lines
-    
+
 def _get_reduced_symbols(symbols):
     reduced_symbols = []
     for s in symbols:
@@ -309,18 +324,26 @@ def _get_reduced_symbols(symbols):
 #
 def get_born_OUTCAR(poscar_filename="POSCAR",
                     outcar_filename="OUTCAR",
-                    primitive_axis=np.eye(3),
-                    supercell_matrix=np.eye(3, dtype='intc'),
+                    primitive_matrix=None,
+                    supercell_matrix=None,
                     is_symmetry=True,
                     symmetrize_tensors=False,
                     symprec=1e-5):
+    if primitive_matrix is None:
+        pmat = np.eye(3)
+    else:
+        pmat = primitive_matrix
+    if supercell_matrix is None:
+        smat = np.eye(3, dtype='intc')
+    else:
+        smat = supercell_matrix
     ucell = read_vasp(poscar_filename)
     outcar = open(outcar_filename)
 
     borns, epsilon = _read_born_and_epsilon(outcar)
     num_atom = len(borns)
     assert num_atom == ucell.get_number_of_atoms()
-    
+
     if symmetrize_tensors:
         lattice = ucell.get_cell().T
         positions = ucell.get_scaled_positions()
@@ -329,22 +352,18 @@ def get_born_OUTCAR(poscar_filename="POSCAR",
                      for r in u_sym.get_pointgroup_operations()]
         epsilon = _symmetrize_tensor(epsilon, point_sym)
         borns = _symmetrize_borns(borns, u_sym, lattice, positions, symprec)
-        
-    inv_smat = np.linalg.inv(supercell_matrix)
-    scell = get_supercell(ucell,
-                          supercell_matrix,
-                          symprec=symprec)
-    pcell = get_primitive(scell,
-                          np.dot(inv_smat, primitive_axis),
-                          symprec=symprec)
+
+    inv_smat = np.linalg.inv(smat)
+    scell = get_supercell(ucell, smat, symprec=symprec)
+    pcell = get_primitive(scell, np.dot(inv_smat, pmat), symprec=symprec)
     p2s = np.array(pcell.get_primitive_to_supercell_map(), dtype='intc')
     p_sym = Symmetry(pcell, is_symmetry=is_symmetry, symprec=symprec)
     s_indep_atoms = p2s[p_sym.get_independent_atoms()]
     u2u = scell.get_unitcell_to_unitcell_map()
     u_indep_atoms = [u2u[x] for x in s_indep_atoms]
     reduced_borns = borns[u_indep_atoms].copy()
-    
-    return reduced_borns, epsilon
+
+    return reduced_borns, epsilon, s_indep_atoms
 
 def _read_born_and_epsilon(outcar):
     borns = []
@@ -352,17 +371,17 @@ def _read_born_and_epsilon(outcar):
         line = outcar.readline()
         if not line:
             break
-    
+
         if "NIONS" in line:
             num_atom = int(line.split()[11])
-    
+
         if "MACROSCOPIC STATIC DIELECTRIC TENSOR" in line:
             epsilon = []
             outcar.readline()
             epsilon.append([float(x) for x in outcar.readline().split()])
             epsilon.append([float(x) for x in outcar.readline().split()])
             epsilon.append([float(x) for x in outcar.readline().split()])
-    
+
         if "BORN" in line:
             outcar.readline()
             line = outcar.readline()
@@ -414,7 +433,7 @@ def _symmetrize_borns(borns, u_sym, lattice, positions, symprec):
             "Born effective charge symmetrization might go wrong.\n")
 
     return borns
-    
+
 def _symmetrize_tensor(tensor, symmetry_operations):
     sum_tensor = np.zeros_like(tensor)
     for sym in symmetry_operations:
@@ -479,18 +498,18 @@ def get_force_constants_vasprun_xml(vasprun):
             return False
         # num_atom = fc_tmp.shape[0] / 3
         force_constants = np.zeros((num_atom, num_atom, 3, 3), dtype='double')
-    
+
         for i in range(num_atom):
             for j in range(num_atom):
                 force_constants[i, j] = fc_tmp[i*3:(i+1)*3, j*3:(j+1)*3]
-    
+
         # Inverse normalization by atomic weights
         for i in range(num_atom):
             for j in range(num_atom):
                 force_constants[i, j] *= -np.sqrt(masses[i] * masses[j])
 
         return force_constants, elements
-    
+
 def get_forces_from_vasprun_xmls(vaspruns, num_atom, index_shift=0):
     forces = []
     for i, vasprun in enumerate(vaspruns):
@@ -507,10 +526,10 @@ def get_forces_from_vasprun_xmls(vaspruns, num_atom, index_shift=0):
         else:
             print("\nNumber of forces in vasprun.xml #%d is wrong." % (i + 1))
             sys.exit(1)
-            
-    sys.stderr.wrong("\n")
+
+    sys.stderr.write("\n")
     return np.array(forces)
-    
+
 def get_force_constants_from_vasprun_xmls(vasprun_filenames):
     force_constants_set = []
     for i, filename in enumerate(vasprun_filenames):
@@ -536,7 +555,7 @@ def _iterparse(fname, tag=None):
         print("Python 2.5 or later is needed.")
         print("For creating FORCE_SETS file with Python 2.4, you can use "
               "phonopy 1.8.5.1 with python-lxml .")
-        sys.exit(1)        
+        sys.exit(1)
 
 def _is_version528(filename):
     for line in open(filename):
@@ -562,7 +581,7 @@ def _get_atomtypes_from_vasprun_xml(element):
     masses = []
     valences = []
     num_atoms = []
-    
+
     if element.tag == 'array':
         if 'name' in element.attrib:
             if element.attrib['name'] == 'atomtypes':
@@ -578,10 +597,10 @@ def _get_atomtypes_from_vasprun_xml(element):
 
 #
 # OUTCAR handling (obsolete)
-#        
+#
 def read_force_constant_OUTCAR(filename):
     return get_force_constants_OUTCAR(filename)
-    
+
 def get_force_constants_OUTCAR(filename):
     file = open(filename)
     while 1:
@@ -613,4 +632,3 @@ if __name__ == '__main__':
     import sys
     atoms = read_vasp(sys.argv[1])
     write_vasp('%s-new' % sys.argv[1], atoms)
-

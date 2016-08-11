@@ -16,21 +16,25 @@ def get_thermal_conductivity_LBTE(
         interaction,
         symmetry,
         temperatures=np.arange(0, 1001, 10, dtype='double'),
-        sigmas=[],
+        sigmas=None,
         is_isotope=False,
         mass_variances=None,
         grid_points=None,
         boundary_mfp=None, # in micrometre
         is_reducible_collision_matrix=False,
-        no_kappa_stars=False,
+        is_kappa_star=True,
         gv_delta_q=1e-4, # for group velocity
+        is_full_pp=False,
         pinv_cutoff=1.0e-8,
         write_collision=False,
         read_collision=False,
+        write_kappa=False,
         input_filename=None,
         output_filename=None,
         log_level=0):
 
+    if sigmas is None:
+        sigmas = []
     if log_level:
         print("-------------------- Lattice thermal conducitivity (LBTE) "
               "--------------------")
@@ -52,8 +56,9 @@ def get_thermal_conductivity_LBTE(
         mass_variances=mass_variances,
         boundary_mfp=boundary_mfp,
         is_reducible_collision_matrix=is_reducible_collision_matrix,
-        no_kappa_stars=no_kappa_stars,
+        is_kappa_star=is_kappa_star,
         gv_delta_q=gv_delta_q,
+        is_full_pp=is_full_pp,
         pinv_cutoff=pinv_cutoff,
         log_level=log_level)
     
@@ -72,8 +77,8 @@ def get_thermal_conductivity_LBTE(
 
     if not read_collision or read_from == "grid_points":
         _write_collision(lbte, filename=output_filename)
-        
-    if grid_points is None:
+
+    if write_kappa and grid_points is None:
         lbte.set_kappa_at_sigmas()
         _write_kappa(lbte, filename=output_filename, log_level=log_level)
     
@@ -249,20 +254,24 @@ class Conductivity_LBTE(Conductivity):
                  symmetry,
                  grid_points=None,
                  temperatures=None,
-                 sigmas=[],
+                 sigmas=None,
                  is_isotope=False,
                  mass_variances=None,
                  boundary_mfp=None, # in micrometre
                  is_reducible_collision_matrix=False,
-                 no_kappa_stars=False,
+                 is_kappa_star=True,
                  gv_delta_q=None, # finite difference for group veolocity
+                 is_full_pp=False,
                  pinv_cutoff=1.0e-8,
                  log_level=0):
+        if sigmas is None:
+            sigmas = []
         self._pp = None
         self._temperatures = None
         self._sigmas = None
-        self._no_kappa_stars = None
+        self._is_kappa_star = None
         self._gv_delta_q = None
+        self._is_full_pp = is_full_pp
         self._log_level = None
         self._primitive = None
         self._dm = None
@@ -309,12 +318,12 @@ class Conductivity_LBTE(Conductivity):
                               is_isotope=is_isotope,
                               mass_variances=mass_variances,
                               boundary_mfp=boundary_mfp,
-                              no_kappa_stars=no_kappa_stars,
+                              is_kappa_star=is_kappa_star,
                               gv_delta_q=gv_delta_q,
                               log_level=log_level)
 
         self._is_reducible_collision_matrix = is_reducible_collision_matrix
-        if self._no_kappa_stars:
+        if not self._is_kappa_star:
             self._is_reducible_collision_matrix = True
         self._collision_matrix = None
         self._pinv_cutoff = pinv_cutoff
@@ -355,10 +364,7 @@ class Conductivity_LBTE(Conductivity):
                       len(self._pp.get_triplets_at_q()[0]))
                 print("Calculating interaction...")
                 
-            self._collision.run_interaction()
             self._set_collision_matrix_at_sigmas(i)
-            self._averaged_pp_interaction[i] = (
-                self._pp.get_averaged_interaction())
             
         if self._isotope is not None:
             self._set_gamma_isotope_at_sigmas(i)
@@ -378,8 +384,9 @@ class Conductivity_LBTE(Conductivity):
         self._gv = np.zeros((num_grid_points,
                              num_band,
                              3), dtype='double')
-        self._averaged_pp_interaction = np.zeros((num_grid_points, num_band),
-                                                 dtype='double')
+        if self._is_full_pp:
+            self._averaged_pp_interaction = np.zeros(
+                (num_grid_points, num_band), dtype='double')
         self._gamma = np.zeros((len(self._sigmas),
                                 len(self._temperatures),
                                 num_grid_points,
@@ -455,6 +462,15 @@ class Conductivity_LBTE(Conductivity):
                 print(text)
             self._collision.set_sigma(sigma)
             self._collision.set_integration_weights()
+
+            if self._is_full_pp and j != 0:
+                pass
+            else:
+                self._collision.run_interaction(is_full_pp=self._is_full_pp)
+            if self._is_full_pp and j == 0:
+                self._averaged_pp_interaction[i] = (
+                    self._pp.get_averaged_interaction())
+
             for k, t in enumerate(self._temperatures):
                 self._collision.set_temperature(t)
                 self._collision.run()
@@ -468,7 +484,7 @@ class Conductivity_LBTE(Conductivity):
             sys.stdout.flush()
             
         if self._is_reducible_collision_matrix:
-            if not self._no_kappa_stars:
+            if self._is_kappa_star:
                 self._expand_collisions()
             self._combine_reducible_collisions()
             weights = np.ones(np.prod(self._mesh), dtype='intc')
@@ -488,7 +504,7 @@ class Conductivity_LBTE(Conductivity):
                     text += "for sigma=%s -----------" % sigma
                 else:
                     text += "with tetrahedron method -----------"
-                print text
+                print(text)
                 print(("#%6s       " + " %-10s" * 6) %
                       ("T(K)", "xx", "yy", "zz", "yz", "xz", "xy"))
             for k, t in enumerate(self._temperatures):
@@ -787,17 +803,25 @@ class Conductivity_LBTE(Conductivity):
         gp = self._grid_points[i]
         frequencies = self._frequencies[gp]
         gv = self._gv[i]
-        ave_pp = self._averaged_pp_interaction[i]
+        if self._is_full_pp:
+            ave_pp = self._averaged_pp_interaction[i]
+            text = "Frequency     group velocity (x, y, z)     |gv|       Pqj"
+        else:
+            text = "Frequency     group velocity (x, y, z)     |gv|"
 
-        text = "Frequency     group velocity (x, y, z)     |gv|       Pqj"
         if self._gv_delta_q is None:
             pass
         else:
             text += "  (dq=%3.1e)" % self._gv_delta_q
-        print text
-        for f, v, pp in zip(frequencies, gv, ave_pp):
-            print("%8.3f   (%8.3f %8.3f %8.3f) %8.3f %11.3e" %
-                  (f, v[0], v[1], v[2], np.linalg.norm(v), pp))
+        print(text)
+        if self._is_full_pp:
+            for f, v, pp in zip(frequencies, gv, ave_pp):
+                print("%8.3f   (%8.3f %8.3f %8.3f) %8.3f %11.3e" %
+                      (f, v[0], v[1], v[2], np.linalg.norm(v), pp))
+        else:
+            for f, v in zip(frequencies, gv):
+                print("%8.3f   (%8.3f %8.3f %8.3f) %8.3f" %
+                      (f, v[0], v[1], v[2], np.linalg.norm(v)))
 
         sys.stdout.flush()
 

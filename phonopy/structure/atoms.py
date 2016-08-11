@@ -48,33 +48,33 @@ class Atoms:
                  scaled_positions=None,
                  cell=None,
                  pbc=None):
-
         # cell
-        if cell is None:
-            self.cell = None
-        else:
+        self.cell = None
+        if cell is not None:
             self.cell = np.array(cell, dtype='double', order='C')
 
         # position
         self.scaled_positions = None
-        if (not self.cell is None) and  (not positions is None):
-            self.set_positions(positions)
-        if (not scaled_positions is None):
-            self.set_scaled_positions(scaled_positions)
+        if self.cell is not None:
+            if positions is not None:
+                self.set_positions(positions)
+            elif scaled_positions is not None:
+                self.set_scaled_positions(scaled_positions)
 
         # Atom symbols
         self.symbols = symbols
 
         # Atomic numbers
-        if numbers is None:
-            self.numbers = None
-        else:
+        self.numbers = None
+        if numbers is not None:
             self.numbers = np.array(numbers, dtype='intc')
 
         # masses
+        self.masses = None
         self.set_masses(masses)
 
         # (initial) magnetic moments
+        self.magmoms = None
         self.set_magnetic_moments(magmoms)
 
         # number --> symbol
@@ -82,7 +82,7 @@ class Atoms:
             self._numbers_to_symbols()
 
         # symbol --> number
-        elif not self.symbols is None:
+        elif self.symbols is not None:
             self._symbols_to_numbers()
 
         # symbol --> mass
@@ -162,8 +162,8 @@ class Atoms:
         self.symbols = [atom_data[n][1] for n in self.numbers]
         
     def _symbols_to_numbers(self):
-        self.numbers = np.array([symbol_map[s]
-                                 for s in self.symbols], dtype='intc')
+        self.numbers = np.array(
+            [symbol_map[s] for s in self.symbols], dtype='intc')
         
     def _symbols_to_masses(self):
         masses = [atom_data[symbol_map[s]][3] for s in self.symbols]
@@ -179,8 +179,10 @@ class PhonopyAtoms(Atoms):
                  masses=None,
                  magmoms=None,
                  scaled_positions=None,
+                 positions=None,
                  cell=None,
-                 atoms=None):
+                 atoms=None,
+                 pbc=True): # pbc is dummy argument, and never used.
         if atoms:
             Atoms.__init__(self,
                            numbers=atoms.get_atomic_numbers(),
@@ -196,21 +198,27 @@ class PhonopyAtoms(Atoms):
                            masses=masses,
                            magmoms=magmoms,
                            scaled_positions=scaled_positions,
+                           positions=positions,
                            cell=cell,
                            pbc=True)
 
-    def __str__(self):
+    def get_yaml_lines(self):
         lines = []
         lines.append("lattice:")
         for v, a in zip(self.cell, ('a', 'b', 'c')):
-            lines.append("- [ %22.16f, %22.16f, %22.16f ] # %s" %
+            lines.append("- [ %21.15f, %21.15f, %21.15f ] # %s" %
                          (v[0], v[1], v[2], a))
         lines.append("points:")
-        for i, (s, v) in enumerate(zip(self.symbols, self.scaled_positions)):
+        for i, (s, v, m) in enumerate(
+                zip(self.symbols, self.scaled_positions, self.masses)):
             lines.append("- symbol: %-2s # %d" % (s, i + 1))
-            lines.append("  coordinates: [ %19.16f, %19.16f, %19.16f ]" %
+            lines.append("  coordinates: [ %18.15f, %18.15f, %18.15f ]" %
                          tuple(v))
-        return "\n".join(lines)
+            lines.append("  mass: %f" % m)
+        return lines
+
+    def __str__(self):
+        return "\n".join(self.get_yaml_lines())
 
 atom_data = [ 
     [  0, "X", "X", None], # 0
@@ -591,7 +599,7 @@ isotope_data = {
            [162, 161.926795, 0.25475], [163, 162.928728, 0.24896],
            [164, 163.929171, 0.28260]],
     'Ho': [[165, 164.930319, 1.0000]],
-    'Eu': [[162, 161.928775, 0.00139], [164, 163.929197, 0.01601],
+    'Er': [[162, 161.928775, 0.00139], [164, 163.929197, 0.01601],
            [166, 165.930290, 0.33503], [167, 166.932046, 0.22869],
            [168, 167.932368, 0.26978], [170, 169.935461, 0.14910]],
     'Tm': [[169, 168.934211, 1.0000]],

@@ -1,10 +1,13 @@
 import numpy as np
 from phonopy.phonon.solver import set_phonon_c, set_phonon_py
-from phonopy.harmonic.dynamical_matrix import get_smallest_vectors, get_dynamical_matrix
+from phonopy.harmonic.dynamical_matrix import (get_smallest_vectors,
+                                               get_dynamical_matrix)
 from phonopy.units import VaspToTHz, Hbar, EV, Angstrom, THz, AMU, PlanckConstant
 from anharmonic.phonon3.real_to_reciprocal import RealToReciprocal
 from anharmonic.phonon3.reciprocal_to_normal import ReciprocalToNormal
-from anharmonic.phonon3.triplets import get_triplets_at_q, get_nosym_triplets_at_q, get_bz_grid_address
+from anharmonic.phonon3.triplets import (get_triplets_at_q,
+                                         get_nosym_triplets_at_q,
+                                         get_bz_grid_address)
 
 class Interaction:
     def __init__(self,
@@ -17,7 +20,7 @@ class Interaction:
                  constant_averaged_interaction=None,
                  frequency_factor_to_THz=VaspToTHz,
                  unit_conversion=None,
-                 is_nosym=False,
+                 is_mesh_symmetry=True,
                  symmetrize_fc3_q=False,
                  cutoff_frequency=None,
                  lapack_zheev_uplo='L'):
@@ -46,12 +49,13 @@ class Interaction:
             self._cutoff_frequency = 0
         else:
             self._cutoff_frequency = cutoff_frequency
-        self._is_nosym = is_nosym
+        self._is_mesh_symmetry = is_mesh_symmetry
         self._symmetrize_fc3_q = symmetrize_fc3_q
         self._lapack_zheev_uplo = lapack_zheev_uplo
 
         self._symprec = symmetry.get_symmetry_tolerance()
 
+        self._grid_point = None
         self._triplets_at_q = None
         self._weights_at_q = None
         self._triplets_map_at_q = None
@@ -68,7 +72,7 @@ class Interaction:
         
         self._allocate_phonon()
         
-    def run(self, lang='C'):
+    def run(self, g_zero=None, lang='C'):
         num_band = self._primitive.get_number_of_atoms() * 3
         num_triplets = len(self._triplets_at_q)
 
@@ -77,7 +81,7 @@ class Interaction:
                 (num_triplets, len(self._band_indices), num_band, num_band),
                 dtype='double')
             if lang == 'C':
-                self._run_c()
+                self._run_c(g_zero=g_zero)
             else:
                 self._run_py()
         else:
@@ -85,7 +89,6 @@ class Interaction:
             self._interaction_strength = np.ones(
                 (num_triplets, len(self._band_indices), num_band, num_band),
                 dtype='double') * self._constant_averaged_interaction / num_grid
-            self.set_phonon(self._triplets_at_q.ravel())
 
     def get_interaction_strength(self):
         return self._interaction_strength
@@ -130,15 +133,12 @@ class Interaction:
     def get_lapack_zheev_uplo(self):
         return self._lapack_zheev_uplo
 
-    def is_nosym(self):
-        return self._is_nosym
-
     def get_cutoff_frequency(self):
         return self._cutoff_frequency
         
     def set_grid_point(self, grid_point, stores_triplets_map=False):
         reciprocal_lattice = np.linalg.inv(self._primitive.get_cell())
-        if self._is_nosym:
+        if not self._is_mesh_symmetry:
             (triplets_at_q,
              weights_at_q,
              grid_address,
@@ -177,12 +177,14 @@ class Interaction:
                 print("%s" % sum_q)
                 print("============= Warning ==================")
 
+        self._grid_point = grid_point
         self._triplets_at_q = triplets_at_q
         self._weights_at_q = weights_at_q
         self._triplets_map_at_q = triplets_map_at_q
         self._grid_address = grid_address
         self._bz_map = bz_map
         self._ir_map_at_q = ir_map_at_q
+        self.set_phonons(self._triplets_at_q.ravel())
 
     def set_dynamical_matrix(self,
                              fc2,
@@ -204,7 +206,27 @@ class Interaction:
         if nac_q_direction is not None:
             self._nac_q_direction = np.array(nac_q_direction, dtype='double')
 
-    def set_phonon(self, grid_points):
+    def set_phonon_data(self, frequencies, eigenvectors, grid_address):
+        if grid_address.shape != self._grid_address.shape:
+            print("=" * 26 + " Warning " + "=" * 26)
+            print("Input grid address size is inconsistent. "
+                  "Setting phonons faild.")
+            print("=" * 26 + " Warning " + "=" * 26)
+            return False
+
+        if (self._grid_address - grid_address).all():
+            print("=" * 26 + " Warning " + "=" * 26)
+            print("Input grid addresses are inconsistent. "
+                  "Setting phonons faild.")
+            print("=" * 26 + " Warning " + "=" * 26)
+            return False
+        else:
+            self._phonon_done[:] = 1
+            self._frequencies[:] = frequencies
+            self._eigenvectors[:] = eigenvectors
+            return True
+
+    def set_phonons(self, grid_points):
         # for i, grid_triplet in enumerate(self._triplets_at_q):
         #     for gp in grid_triplet:
         #         self._set_phonon_py(gp)
@@ -217,10 +239,9 @@ class Interaction:
         num_band = self._primitive.get_number_of_atoms() * 3
         return np.dot(w, v_sum) / num_band ** 2
             
-    def _run_c(self):
+    def _run_c(self, g_zero=None):
         import anharmonic._phono3py as phono3c
         
-        self.set_phonon(self._triplets_at_q.ravel())
         num_band = self._primitive.get_number_of_atoms() * 3
         svecs, multiplicity = get_smallest_vectors(self._supercell,
                                                    self._primitive,
@@ -229,7 +250,14 @@ class Interaction:
         p2s = self._primitive.get_primitive_to_supercell_map()
         s2p = self._primitive.get_supercell_to_primitive_map()
 
+        if g_zero is None:
+            _g_zero = np.zeros(self._interaction_strength.shape,
+                               dtype='byte', order='C')
+        else:
+            _g_zero = g_zero
+
         phono3c.interaction(self._interaction_strength,
+                            _g_zero,
                             self._frequencies,
                             self._eigenvectors,
                             self._triplets_at_q,
@@ -299,6 +327,6 @@ class Interaction:
         num_grid = len(self._grid_address)
         self._phonon_done = np.zeros(num_grid, dtype='byte')
         self._frequencies = np.zeros((num_grid, num_band), dtype='double')
+        itemsize = self._frequencies.itemsize
         self._eigenvectors = np.zeros((num_grid, num_band, num_band),
-                                      dtype='complex128')
-        
+                                      dtype=("c%d" % (itemsize * 2)))

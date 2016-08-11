@@ -1,54 +1,35 @@
 from distutils.core import setup, Extension
 #from setuptools import setup, Extension
 import numpy
+import platform
+
 include_dirs_numpy = [numpy.get_include()]
 include_dirs_lapacke = ['../lapacke/include']
+include_dirs = ['c/harmonic_h', 'c/anharmonic_h']
+include_dirs += include_dirs_numpy + include_dirs_lapacke
+extra_link_args = ['-lgomp',]
 
-extension_phono4py = Extension(
-    'anharmonic._phono4py',
-    include_dirs=(['c/harmonic_h',
-                   'c/anharmonic_h'] +
-                  include_dirs_numpy +
-                  include_dirs_lapacke),
-    extra_compile_args=['-fopenmp'],
-    extra_link_args=['-lgomp',
-                     '-llapacke',
-                     '-llapack',
-                     '-lblas'],
-    sources=['c/_phono4py.c',
-             'c/harmonic/dynmat.c',
-             'c/anharmonic/lapack_wrapper.c',
-             'c/anharmonic/phonoc_array.c',
-             'c/anharmonic/phonoc_math.c',
-             'c/anharmonic/phonoc_utils.c',
-             'c/anharmonic/phonon3/fc3.c',
-             'c/anharmonic/phonon4/fc4.c',
-             'c/anharmonic/phonon4/real_to_reciprocal.c',
-             'c/anharmonic/phonon4/frequency_shift.c'])
+if platform.system() == 'Darwin':
+    include_dirs += ['/opt/local/include']
+    extra_link_args += ['/opt/local/lib/libopenblas.a']
+else:
+    extra_link_args += ['-llapacke', '-llapack', '-lblas']
 
 extension_forcefit = Extension(
     'anharmonic._forcefit',
-    include_dirs=(['c/anharmonic_h'] +
-                  include_dirs_numpy +
-                  include_dirs_lapacke),
+    include_dirs=include_dirs,
     extra_compile_args=['-fopenmp'],
-    extra_link_args=['-lgomp',
-                     '-llapacke',
-                     '-llapack',
-                     '-lblas'],
+    extra_link_args=extra_link_args,
     sources=['c/_forcefit.c',
-             'c/anharmonic/lapack_wrapper.c'])
+             'c/harmonic/lapack_wrapper.c'])
 
-setup(name='phono4py',
+setup(name='force-fit',
       version='0.8.0',
-      description='This is the phono4py module.',
+      description='This is the force-fit module.',
       author='Atsushi Togo',
       author_email='atz.togo@gmail.com',
       url='http://phonopy.sourceforge.net/',
       packages=['anharmonic',
-                'anharmonic.force_fit',
-                'anharmonic.phonon4'],
-      scripts=['scripts/force-fit',
-               'scripts/phono4py'],
-      ext_modules=[extension_phono4py,
-                   extension_forcefit])
+                'anharmonic.force_fit'],
+      scripts=['scripts/force-fit',],
+      ext_modules=[extension_forcefit])

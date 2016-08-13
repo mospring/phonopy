@@ -1,9 +1,20 @@
 import sys
 import numpy as np
-from phonopy.harmonic.force_constants import similarity_transformation, get_positions_sent_by_rot_inv, get_rotated_displacement
+from phonopy.harmonic.force_constants import (similarity_transformation,
+                                              get_positions_sent_by_rot_inv,
+                                              get_rotated_displacement)
 from phonopy.harmonic.force_constants import show_drift_force_constants
-from anharmonic.phonon3.fc3 import set_translational_invariance_fc3_per_index, solve_fc3, distribute_fc3, third_rank_tensor_rotation, get_atom_mapping_by_symmetry, get_atom_by_symmetry, show_drift_fc3, set_permutation_symmetry_fc3, get_delta_fc2, get_constrained_fc2
-from anharmonic.phonon3.displacement_fc3 import get_reduced_site_symmetry, get_bond_symmetry
+from anharmonic.phonon3.fc3 import (set_translational_invariance_fc3_per_index,
+                                    solve_fc3, distribute_fc3,
+                                    third_rank_tensor_rotation,
+                                    get_atom_mapping_by_symmetry,
+                                    get_atom_by_symmetry,
+                                    show_drift_fc3,
+                                    set_permutation_symmetry_fc3,
+                                    get_delta_fc2,
+                                    get_constrained_fc2)
+from anharmonic.phonon3.displacement_fc3 import (get_reduced_site_symmetry,
+                                                 get_bond_symmetry)
 from phonopy.structure.symmetry import Symmetry
 
 def get_fc4(supercell,
@@ -477,7 +488,8 @@ def _solve_fc4(fc4,
     positions = supercell.get_scaled_positions()
     pos_center = positions[first_atom_num].copy()
     positions -= pos_center
-    rot_map_syms = get_positions_sent_by_rot_inv(positions,
+    rot_map_syms = get_positions_sent_by_rot_inv(lattice,
+                                                 positions,
                                                  site_symmetry,
                                                  symprec)
     

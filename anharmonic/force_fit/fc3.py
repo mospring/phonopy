@@ -1,6 +1,7 @@
 import sys
 import numpy as np
-from phonopy.harmonic.force_constants import similarity_transformation, get_positions_sent_by_rot_inv
+from phonopy.harmonic.force_constants import (similarity_transformation,
+                                              get_positions_sent_by_rot_inv)
 from anharmonic.phonon3.displacement_fc3 import get_reduced_site_symmetry
 from anharmonic.phonon3.fc3 import distribute_fc3
 
@@ -65,7 +66,8 @@ class FC3Fit:
     def _fit(self, first_atom_num, disp_pairs, sets_of_forces):
         site_symmetry = self._symmetry.get_site_symmetry(first_atom_num)
         positions = self._positions.copy() - self._positions[first_atom_num]
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      site_symmetry,
                                                      self._symprec)
 
@@ -182,7 +184,8 @@ class FC3Fit:
         reduced_site_sym = get_reduced_site_symmetry(
             site_symmetry, direction, self._symprec)
         positions = self._positions.copy() - self._positions[first_atom_num]
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      reduced_site_sym,
                                                      self._symprec)
 

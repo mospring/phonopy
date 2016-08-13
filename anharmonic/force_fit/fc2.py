@@ -1,5 +1,7 @@
 import numpy as np
-from phonopy.harmonic.force_constants import similarity_transformation, get_positions_sent_by_rot_inv, distribute_force_constants
+from phonopy.harmonic.force_constants import (similarity_transformation,
+                                              get_positions_sent_by_rot_inv,
+                                              distribute_force_constants)
 from phonopy.harmonic.dynamical_matrix import get_equivalent_smallest_vectors
 
 class FC2Fit:
@@ -146,7 +148,8 @@ class FC2Fit:
         site_symmetry = self._symmetry.get_site_symmetry(first_atom_num)
         positions = (self._positions.copy() -
                      self._positions[first_atom_num])
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      site_symmetry,
                                                      self._symprec)
         site_sym_cart = [similarity_transformation(self._lattice, sym)

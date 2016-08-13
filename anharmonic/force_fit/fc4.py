@@ -1,7 +1,10 @@
 import sys
 import numpy as np
-from phonopy.harmonic.force_constants import similarity_transformation, get_positions_sent_by_rot_inv, distribute_force_constants
-from anharmonic.phonon3.displacement_fc3 import get_reduced_site_symmetry, get_bond_symmetry
+from phonopy.harmonic.force_constants import (similarity_transformation,
+                                              get_positions_sent_by_rot_inv,
+                                              distribute_force_constants)
+from anharmonic.phonon3.displacement_fc3 import (get_reduced_site_symmetry,
+                                                 get_bond_symmetry)
 from anharmonic.phonon4.fc4 import distribute_fc4
 from anharmonic.phonon3.fc3 import distribute_fc3
 
@@ -95,7 +98,8 @@ class FC4Fit:
     def _fit(self, first_atom_num, disp_triplets, sets_of_forces):
         site_symmetry = self._symmetry.get_site_symmetry(first_atom_num)
         positions = self._positions.copy() - self._positions[first_atom_num]
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      site_symmetry,
                                                      self._symprec)
         site_syms_cart = np.array([similarity_transformation(self._lattice, sym)
@@ -423,7 +427,8 @@ class FC4Fit:
                       second_atom_num,
                       reduced_site_sym):
         positions = self._positions.copy() - self._positions[first_atom_num]
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      reduced_site_sym,
                                                      self._symprec)
 
@@ -457,7 +462,8 @@ class FC4Fit:
                       third_atom_num,
                       reduced_bond_sym):
         positions = self._positions.copy() - self._positions[second_atom_num]
-        rot_map_syms = get_positions_sent_by_rot_inv(positions,
+        rot_map_syms = get_positions_sent_by_rot_inv(self._lattice,
+                                                     positions,
                                                      reduced_bond_sym,
                                                      self._symprec)
 

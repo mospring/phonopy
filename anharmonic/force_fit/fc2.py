@@ -241,3 +241,44 @@ class FC2Fit:
                 inv_mat = np.linalg.pinv(mat)
                 inv_matrices.append(inv_mat)
         return inv_matrices
+
+class FC2allFit:
+    def __init__(self,
+                 supercell,
+                 supercells_with_displacements,
+                 disp_dataset,
+                 symmetry,
+                 pinv_cutoff=1e-13):
+
+        self._scell = supercell
+        self._scell_with_disps = supercells_with_displacements
+        self._lattice = supercell.get_cell().T
+        self._positions = supercell.get_scaled_positions()
+        self._num_atom = len(self._positions)
+        self._dataset = disp_dataset
+        self._symmetry = symmetry
+        self._symprec = symmetry.get_symmetry_tolerance()
+        if pinv_cutoff is None:
+            self._pinv_cutoff = 1e-13
+        else:
+            self._pinv_cutoff = pinv_cutoff
+        
+        self._fc2 = np.zeros((self._num_atom, self._num_atom, 3, 3),
+                             dtype='double')
+
+    def run(self):
+        pass
+
+    def get_fc2(self):
+        return self._fc2
+
+    def _search_operations(self):
+        indep_atoms = self._symmetry.get_independent_atoms()
+
+        pure_trans = []
+        sym_opts = self._symmetry.get_symmetry_operations()
+        identity = np.eye(3, dtype='intc')
+        for t, r in zip(sym_opts['translations'], sym_opts['rotations']):
+            if (r == identity).all():
+                pure_trans.append(t)
+        print(pure_trans)

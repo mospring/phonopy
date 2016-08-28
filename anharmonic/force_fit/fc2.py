@@ -202,10 +202,10 @@ class FC2Fit:
 
     def _pinv(self, matrix):
         try:
-            import anharmonic._forcefit as forcefit
+            import phonopy._lapackepy as lapackepy
             mat_shape = matrix.shape
             inv_matrix = np.zeros((mat_shape[1], mat_shape[0]), dtype='double')
-            forcefit.pinv(matrix, inv_matrix, self._pinv_cutoff)
+            lapackepy.pinv(inv_matrix, matrix, self._pinv_cutoff)
         except ImportError:
             inv_matrix = np.linalg.pinv(matrix, rcond=self._pinv_cutoff)
 
@@ -272,21 +272,14 @@ class FC2allFit:
     def get_fc2(self):
         return self._fc2
 
-    def _get_pure_translations(self):
-        pure_trans = []
-        sym_opts = self._symmetry.get_symmetry_operations()
-        identity = np.eye(3, dtype='intc')
-        for t, r in zip(sym_opts['translations'], sym_opts['rotations']):
-            if (r == identity).all():
-                pure_trans.append(t)
-        return np.array(pure_trans, dtype='double', order='C')
-
     def _search_operations(self):
         sym_opts = self._symmetry.get_symmetry_operations()
-        indep_atoms = self._symmetry.get_independent_atoms()
-        rotations = self._symmetry.get_pointgroup_operations()
-        pure_trans = self._get_pure_translations()
-        if len(rotations) * len(pure_trans) != len(sym_opts['rotations']):
-            print("Symmetry is broken.")
-            return False
+        # r_i -> r_indep_j
+        map_atoms = self._symmetry.get_map_atoms()
+        # (R, t)r_i = r_indep_j, r_i -> (R, t)
+        map_operations = self._symmetry.get_map_operations()
+
+        for i, (indep, op) in enumerate(zip(map_atoms, map_operations)):
+            print("%d: %d %d" % (i + 1, indep, op))
+
         return True

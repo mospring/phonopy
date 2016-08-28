@@ -9,7 +9,7 @@ from anharmonic.force_fit.fc2 import FC2allFit
 class TestFC2allFit(unittest.TestCase):
 
     def setUp(self):
-        filename = "POSCAR.yaml"
+        filename = "../../phonopy/NaCl.yaml"
         symprec = 1e-5
 
         self._cell = get_unitcell_from_phonopy_yaml(filename)

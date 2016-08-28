@@ -272,13 +272,21 @@ class FC2allFit:
     def get_fc2(self):
         return self._fc2
 
-    def _search_operations(self):
-        indep_atoms = self._symmetry.get_independent_atoms()
-
+    def _get_pure_translations(self):
         pure_trans = []
         sym_opts = self._symmetry.get_symmetry_operations()
         identity = np.eye(3, dtype='intc')
         for t, r in zip(sym_opts['translations'], sym_opts['rotations']):
             if (r == identity).all():
                 pure_trans.append(t)
-        print(pure_trans)
+        return np.array(pure_trans, dtype='double', order='C')
+
+    def _search_operations(self):
+        sym_opts = self._symmetry.get_symmetry_operations()
+        indep_atoms = self._symmetry.get_independent_atoms()
+        rotations = self._symmetry.get_pointgroup_operations()
+        pure_trans = self._get_pure_translations()
+        if len(rotations) * len(pure_trans) != len(sym_opts['rotations']):
+            print("Symmetry is broken.")
+            return False
+        return True

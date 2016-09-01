@@ -4,12 +4,12 @@ import numpy as np
 from phonopy.interface.phonopy_yaml import get_unitcell_from_phonopy_yaml
 from phonopy.structure.cells import get_supercell
 from phonopy.structure.symmetry import Symmetry
-from anharmonic.force_fit.fc2 import FC2allFit
+from force_fit.fc2 import FC2allFit
 
 class TestFC2allFit(unittest.TestCase):
 
     def setUp(self):
-        filename = "../../phonopy/NaCl.yaml"
+        filename = "../phonopy/NaCl.yaml"
         symprec = 1e-5
 
         self._cell = get_unitcell_from_phonopy_yaml(filename)
@@ -27,6 +27,9 @@ class TestFC2allFit(unittest.TestCase):
     
     def test_search_operations(self):
         self.assertTrue(self._fc2allfit._search_operations())
+
+    def test_get_displacements(self):
+        self._fc2allfit
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestFC2allFit)

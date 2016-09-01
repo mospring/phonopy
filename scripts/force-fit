@@ -43,9 +43,9 @@ from phonopy.structure.cells import get_supercell
 from phonopy.structure.symmetry import Symmetry
 from phonopy.harmonic.force_constants import show_drift_force_constants
 from phonopy.file_IO import parse_FORCE_SETS
-from anharmonic.force_fit.fc2 import FC2Fit
-from anharmonic.force_fit.fc3 import FC3Fit
-from anharmonic.force_fit.fc4 import FC4Fit
+from force_fit.fc2 import FC2Fit
+from force_fit.fc3 import FC3Fit
+from force_fit.fc4 import FC4Fit
 from anharmonic.file_IO import (parse_disp_fc4_yaml, parse_FORCES_FC4,
                                 parse_disp_fc3_yaml, parse_FORCES_FC3,
                                 parse_disp_fc2_yaml, parse_FORCES_FC2)

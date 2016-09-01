@@ -14,7 +14,7 @@ class FC2Fit:
                  coef_invariants=None,
                  pinv_cutoff=1e-13):
 
-        self._scell = supercell
+        self._supercell = supercell
         self._lattice = supercell.get_cell().T
         self._positions = supercell.get_scaled_positions()
         self._num_atom = len(self._positions)
@@ -26,7 +26,7 @@ class FC2Fit:
             self._pinv_cutoff = 1e-13
         else:
             self._pinv_cutoff = pinv_cutoff
-        
+
         self._fc2 = np.zeros((self._num_atom, self._num_atom, 3, 3),
                              dtype='double')
         self._rot_inv = rotational_invariance
@@ -58,7 +58,7 @@ class FC2Fit:
             fc2 = -np.dot(inv_disp_mat, force_mat).flatten()
             print("  Recidual force (atom %d): %s" % (i + 1, fc2[:3]))
             self._fc2[i] = fc2[3:].reshape(-1, 3, 3)
-            
+
     def _get_big_matrices_for_one_shot(self):
         disp_big_matrices = []
         force_matrices = []
@@ -112,7 +112,7 @@ class FC2Fit:
         for i in range(self._num_atom):
             vectors = get_equivalent_smallest_vectors(i,
                                                       patom_num,
-                                                      self._scell,
+                                                      self._supercell,
                                                       self._lattice.T,
                                                       self._symprec)
             r_frac = np.array(vectors).sum(axis=0) / len(vectors)
@@ -159,7 +159,7 @@ class FC2Fit:
                                                site_sym_cart,
                                                rot_map_syms)
         return rot_disps, rot_forces
-        
+
     def _distribute(self):
         rotations = self._symmetry.get_symmetry_operations()['rotations']
         trans = self._symmetry.get_symmetry_operations()['translations']
@@ -194,7 +194,7 @@ class FC2Fit:
                 rot_disps.append(Su)
 
         return np.array(rot_disps, dtype='double')
-        
+
     def _solve(self, rot_disps, rot_forces):
         inv_disps = self._pinv(rot_disps)
         return np.array([-np.dot(inv_disps, f) for f in rot_forces],
@@ -210,7 +210,7 @@ class FC2Fit:
             inv_matrix = np.linalg.pinv(matrix, rcond=self._pinv_cutoff)
 
         return inv_matrix
-    
+
     def _pinv_multithread(self, matrices):
         inv_matrices = []
         try:
@@ -250,8 +250,8 @@ class FC2allFit:
                  symmetry,
                  pinv_cutoff=1e-13):
 
-        self._scell = supercell
-        self._scell_with_disps = supercells_with_displacements
+        self._supercell = supercell
+        self._supercells_with_disps = supercells_with_displacements
         self._lattice = supercell.get_cell().T
         self._positions = supercell.get_scaled_positions()
         self._num_atom = len(self._positions)
@@ -262,7 +262,7 @@ class FC2allFit:
             self._pinv_cutoff = 1e-13
         else:
             self._pinv_cutoff = pinv_cutoff
-        
+
         self._fc2 = np.zeros((self._num_atom, self._num_atom, 3, 3),
                              dtype='double')
 
@@ -274,12 +274,22 @@ class FC2allFit:
 
     def _search_operations(self):
         sym_opts = self._symmetry.get_symmetry_operations()
-        # r_i -> r_indep_j
+
+        # Mapping r_i -> r_indep_j
         map_atoms = self._symmetry.get_map_atoms()
-        # (R, t)r_i = r_indep_j, r_i -> (R, t)
+
+        # For operation (R, t)r_i = r_indep_j, mapping: r_i -> (R, t)
+        # (R, t) is not unique. So the first one found is chosen.
         map_operations = self._symmetry.get_map_operations()
 
         for i, (indep, op) in enumerate(zip(map_atoms, map_operations)):
             print("%d: %d %d" % (i + 1, indep, op))
 
         return True
+
+    def _get_displacements(self, i):
+        pos = self._supercell.get_scaled_positions()
+        pos_disp = self._supercells_with_disps[i].get_scaled_positions()
+        diff = pos_disp - pos
+        diff -= np.rint(diff)
+        return diff

@@ -596,6 +596,211 @@ def _get_atomtypes_from_vasprun_xml(element):
     return None
 
 #
+# vasprun.xml handling by expat
+#
+class VasprunxmlExpat(object):
+    def __init__(self, filename):
+        self._filename = filename
+
+        self._is_forces = False
+        self._is_stress = False
+        self._is_positions = False
+        self._is_symbols = False
+        self._is_basis = False
+        self._is_energy = False
+
+        self._is_v = False
+        self._is_i = False
+        self._is_rc = False
+        self._is_c = False
+
+        self._is_scstep = False
+        self._is_structure = False
+
+        self._all_forces = []
+        self._all_stress = []
+        self._all_points = []
+        self._all_lattice = []
+        self._symbols = []
+        self._all_energies = []
+        self._forces = None
+        self._stress = None
+        self._points = None
+        self._lattice = None
+        self._energies = None
+
+        self._p = xml.parsers.expat.ParserCreate()
+        self._p.buffer_text = True
+        self._p.StartElementHandler = self._start_element
+        self._p.EndElementHandler = self._end_element
+        self._p.CharacterDataHandler = self._char_data
+
+    def parse(self):
+        try:
+            self._p.ParseFile(open(self._filename))
+        except:
+            return False
+        else:
+            return True
+
+    def get_forces(self):
+        return np.array(self._all_forces)
+
+    def get_stress(self):
+        return np.array(self._all_stress)
+
+    def get_points(self):
+        return np.array(self._all_points)
+
+    def get_lattice(self):
+        return np.array(self._all_lattice)
+
+    def get_symbols(self):
+        return self._symbols
+
+    def get_cells(self):
+        cells = []
+        if len(self._all_points) == len(self._all_lattice):
+            for p, l in zip(self._all_points, self._all_lattice):
+                cells.append(Cell(lattice=l,
+                                  points=p,
+                                  symbols=self._symbols))
+        return cells
+
+    def get_energies(self):
+        return np.array(self._all_energies)
+
+    def _start_element(self, name, attrs):
+        # Used not to collect energies in <scstep>
+        if name == 'scstep':
+            self._is_scstep = True
+
+        # Used not to collect basis and positions in
+        # <structure name="initialpos" >
+        # <structure name="finalpos" >
+        if name == 'structure':
+            if 'name' in attrs.keys():
+                self._is_structure = True
+
+        if (self._is_forces or
+            self._is_stress or
+            self._is_positions or
+            self._is_basis):
+            if name == 'v':
+                self._is_v = True
+
+        if name == 'varray':
+            if 'name' in attrs.keys():
+                if attrs['name'] == 'forces':
+                    self._is_forces = True
+                    self._forces = []
+
+                if attrs['name'] == 'stress':
+                    self._is_stress = True
+                    self._stress = []
+
+                if not self._is_structure:
+                    if attrs['name'] == 'positions':
+                        self._is_positions = True
+                        self._points = []
+
+                    if attrs['name'] == 'basis':
+                        self._is_basis = True
+                        self._lattice = []
+
+        if self._is_energy and name == 'i':
+            self._is_i = True
+
+        if name == 'energy' and (not self._is_scstep):
+            self._is_energy = True
+            self._energies = []
+
+        if self._is_symbols and name == 'rc':
+            self._is_rc = True
+
+        if self._is_symbols and self._is_rc and name == 'c':
+            self._is_c = True
+
+        if name == 'array':
+            if 'name' in attrs.keys():
+                if attrs['name'] == 'atoms':
+                    self._is_symbols = True
+
+
+    def _end_element(self, name):
+        if name == 'scstep':
+            self._is_scstep = False
+
+        if name == 'structure' and self._is_structure:
+            self._is_structure = False
+
+        if name == 'varray':
+            if self._is_forces:
+                self._is_forces = False
+                self._all_forces.append(self._forces)
+
+            if self._is_stress:
+                self._is_stress = False
+                self._all_stress.append(self._stress)
+
+            if self._is_positions:
+                self._is_positions = False
+                self._all_points.append(np.transpose(self._points))
+
+            if self._is_basis:
+                self._is_basis = False
+                self._all_lattice.append(np.transpose(self._lattice))
+
+        if name == 'array':
+            if self._is_symbols:
+                self._is_symbols = False
+
+
+        if name == 'energy' and (not self._is_scstep):
+            self._is_energy = False
+            self._all_energies.append(self._energies)
+
+        if name == 'v':
+            self._is_v = False
+
+        if name == 'i':
+            self._is_i = False
+
+        if name == 'rc':
+            self._is_rc = False
+            if self._is_symbols:
+                self._symbols.pop(-1)
+
+        if name == 'c':
+            self._is_c = False
+
+    def _char_data(self, data):
+        if self._is_v:
+            if self._is_forces:
+                self._forces.append(
+                    [float(x) for x in data.split()])
+
+            if self._is_stress:
+                self._stress.append(
+                    [float(x) for x in data.split()])
+
+            if self._is_positions:
+                self._points.append(
+                    [float(x) for x in data.split()])
+
+            if self._is_basis:
+                self._lattice.append(
+                    [float(x) for x in data.split()])
+
+        if self._is_i:
+            if self._is_energy:
+                self._energies.append(float(data.strip()))
+
+        if self._is_c:
+            if self._is_symbols:
+                self._symbols.append(str(data.strip()))
+
+#
 # XDATCAR
 #
 def read_XDATCAR(filename="XDATCAR"):

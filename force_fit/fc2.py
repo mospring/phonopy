@@ -245,17 +245,15 @@ class FC2Fit:
 class FC2allFit:
     def __init__(self,
                  supercell,
-                 supercells_with_displacements,
-                 disp_dataset,
+                 sets_of_points,
                  symmetry,
                  pinv_cutoff=1e-13):
 
         self._supercell = supercell
-        self._supercells_with_disps = supercells_with_displacements
+        self._sets_of_points = sets_of_points
         self._lattice = supercell.get_cell().T
         self._positions = supercell.get_scaled_positions()
         self._num_atom = len(self._positions)
-        self._dataset = disp_dataset
         self._symmetry = symmetry
         self._symprec = symmetry.get_symmetry_tolerance()
         if pinv_cutoff is None:
@@ -282,14 +280,15 @@ class FC2allFit:
         # (R, t) is not unique. So the first one found is chosen.
         map_operations = self._symmetry.get_map_operations()
 
-        for i, (indep, op) in enumerate(zip(map_atoms, map_operations)):
-            print("%d: %d %d" % (i + 1, indep, op))
+        # for i, (indep, op) in enumerate(zip(map_atoms, map_operations)):
+        #     print("%d: %d %d" % (i + 1, indep, op))
 
         return True
 
     def _get_displacements(self, i):
         pos = self._supercell.get_scaled_positions()
-        pos_disp = self._supercells_with_disps[i].get_scaled_positions()
+        pos_disp = self._sets_of_points[i]
         diff = pos_disp - pos
         diff -= np.rint(diff)
+
         return diff

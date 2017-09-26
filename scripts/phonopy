@@ -257,6 +257,9 @@ elif options.siesta_mode:
 elif options.crystal_mode:
     interface_mode = 'crystal'
     from phonopy.interface.crystal import write_supercells_with_displacements
+elif options.fhiaims_mode:
+    interface_mode = 'fhiaims'
+    from phonopy.interface.FHIaims import write_supercells_with_displacements
 else:
     if options.vasp_mode:
         interface_mode = 'vasp'

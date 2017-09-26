@@ -54,6 +54,7 @@ def get_parser():
         fc_symmetry=None,
         fc_computation_algorithm=None,
         fc_spg_symmetry=False,
+        fhiaims_mode=False,
         fits_debye_model=False,
         force_constants_decimals=None,
         force_constants_mode=False,
@@ -203,6 +204,9 @@ def get_parser():
     parser.add_option(
         "--fc_symmetry", dest="fc_symmetry", type="int",
         help="Symmetrize force constants")
+    parser.add_option(
+        "--fhiaims", dest="fhiaims_mode",
+        action="store_true", help="Invoke FHI-aims mode")
     parser.add_option(
         "--fits_debye_model", dest="fits_debye_model", action="store_true",
         help="Fits total DOS to a Debye model")

@@ -168,3 +168,55 @@ def read_aims_output(filename):
     atoms.forces = forces
 
     return atoms
+
+def parse_set_of_forces(num_atoms,filenames,verbose=True):
+    """ Parse set of forces from aims output file """
+    if verbose:
+        print 'Read forces from {}'.format(filenames)
+
+    is_parsed = True
+    force_sets = []
+    l = 0
+
+    for filename in filenames:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+
+        while l < len(lines):
+            line = lines[l]
+            if "| Number of atoms" in line:
+                N = int(line.split()[5])
+                if not N == num_atoms:
+                    if verbose:
+                        print 'Number of atoms not correct: {} != {}'.format(N, num_atoms)
+                    is_parsed = False
+            elif "Total atomic forces" in line:
+                forces = []
+                for i in range(N):
+                    l += 1
+                    force = map(float, lines[l].split()[-3:])
+                    forces.append(force)
+            l += 1
+        force_sets.append(forces)
+
+    if is_parsed:
+        return force_sets
+    else:
+        return []
+
+def write_supercells_with_displacements(supercell,
+                                        cells_with_displacements,
+                                        pre_filename="geometry.in",
+                                        width=3):
+    atoms = Atoms(symbols=supercell.get_chemical_symbols(),
+                  cell=supercell.get_cell(),
+                  positions=supercell.get_positions(),pbc=True)
+    write_aims("geometry.supercell",atoms)
+    for i,cell in enumerate(cells_with_displacements):
+        if cell is not None:
+            a = Atoms(symbols=cell.get_chemical_symbols(),
+                      cell=cell.get_cell(),
+                      positions=cell.get_positions())
+            filnam = "{pre_filename}-{0:0{width}}".format(i + 1,
+                      pre_filename=pre_filename,width=width)
+            write_aims(filnam,a)

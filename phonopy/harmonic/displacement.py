@@ -70,7 +70,7 @@ def direction_to_displacement(displacement_directions,
     
     return displacement_dataset
 
-def get_least_displacements(symmetry,
+def get_least_displacements(symmetry,prim_symm=None,
                             is_plusminus='auto',
                             is_diagonal=True,
                             is_trigonal=False,
@@ -84,6 +84,9 @@ def get_least_displacements(symmetry,
        ...
      ]
     """
+    if prim_symm == None:
+        prim_symm = symmetry
+
     displacements = []
     if is_diagonal:
         directions = directions_diag
@@ -93,8 +96,8 @@ def get_least_displacements(symmetry,
     if log_level > 2:
         print("Site point symmetry:")
 
-    for atom_num in symmetry.get_independent_atoms():
-        site_symmetry = symmetry.get_site_symmetry(atom_num)
+    for atom_num, ap in zip(symmetry.get_independent_atoms(), prim_symm.get_independent_atoms()):
+        site_symmetry = prim_symm.get_site_symmetry(ap)
 
         if log_level > 2:
             print("Atom %d" % (atom_num + 1))

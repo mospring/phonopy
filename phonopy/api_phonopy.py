@@ -331,7 +331,7 @@ class Phonopy(object):
 
         """
         displacement_directions = get_least_displacements(
-            self._symmetry,
+            self._symmetry, prim_symm = self._primitive_symmetry,
             is_plusminus=is_plusminus,
             is_diagonal=is_diagonal,
             is_trigonal=is_trigonal,
